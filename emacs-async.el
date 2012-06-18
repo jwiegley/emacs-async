@@ -1,5 +1,5 @@
 ;;; -*- lexical-binding: t -*-
-;;; emacs-async --- True asynchronous processing in Emacs
+;;; emacs-async --- Asynchronous processing in Emacs
 
 ;; Copyright (C) 2012 John Wiegley
 
