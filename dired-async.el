@@ -134,7 +134,7 @@ Anything else, ask for each sub-directory."
       (setq recursive nil))
     (async-start
      `(lambda ()
-        (delete-directory ,file ,recursive ,trash))
+        (delete-directory ,file (quote ,recursive) ,trash))
      'ignore)))
 
 (defun dired-create-files (file-creator operation fn-list name-constructor
