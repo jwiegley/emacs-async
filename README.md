@@ -1,8 +1,8 @@
 # emacs-async
 
-async.el is an exceedingly simple (78 lines of code) module for doing
-asynchronous processing in Emacs, by spawning a child Emacs interpreter to
-execute a lambda function, and calling back when the job is done.
+async.el is an exceedingly simple module for doing asynchronous processing in
+Emacs, by spawning a child Emacs interpreter to execute a lambda function, and
+calling back when the job is done.
 
 It uses a very simple syntax:
 
