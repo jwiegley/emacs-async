@@ -72,6 +72,31 @@
 (defvar async-callback-value nil)
 (defvar async-callback-value-set nil)
 
+(defmacro async-inject-environment
+  (include-regexp &optional predicate exclude-regexp)
+  "Inject a part of the parent environment into an async function."
+  `(setq
+    ,@(let (bindings)
+        (mapatoms
+         (lambda (sym)
+           (if (and (boundp sym)
+                    (or (null include-regexp)
+                        (string-match include-regexp (symbol-name sym)))
+                    (not (string-match
+                          (or exclude-regexp "-syntax-table\\'")
+                          (symbol-name sym))))
+               (let ((value (symbol-value sym)))
+                 (when (or (null predicate)
+                           (funcall (or predicate
+                                        (lambda (sym)
+                                          (let ((value (symbol-value sym)))
+                                            (or (not (functionp value))
+                                                (symbolp value))))) sym))
+                   (setq bindings (cons `(quote ,value)
+                                        bindings))
+                   (setq bindings (cons sym bindings)))))))
+        bindings)))
+
 (defun async-when-done (proc &optional change)
   "Process sentinal used to retrieve the value from the child process."
   (when (eq 'exit (process-status proc))
@@ -85,7 +110,8 @@
                        (eq 'async-signal (car result)))
                   (if (eq 'error (car (cdr result)))
                       (error (cadr (cdr result)))
-                    (apply #'signal (cdr result)))
+                    (signal (cadr result)
+                            (cddr result)))
                 (if async-callback
                     (prog1
                         (funcall async-callback result)
