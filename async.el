@@ -81,12 +81,17 @@
             (goto-char (point-max))
             (backward-sexp)
             (let ((result (read (current-buffer))))
-              (if async-callback
-                  (prog1
-                      (funcall async-callback result)
-                    (kill-buffer (current-buffer)))
-                (set (make-local-variable 'async-callback-value) result)
-                (set (make-local-variable 'async-callback-value-set) t))))
+              (if (and (listp result)
+                       (eq 'async-signal (car result)))
+                  (if (eq 'error (car (cdr result)))
+                      (error (cadr (cdr result)))
+                    (apply #'signal (cdr result)))
+                (if async-callback
+                    (prog1
+                        (funcall async-callback result)
+                      (kill-buffer (current-buffer)))
+                  (set (make-local-variable 'async-callback-value) result)
+                  (set (make-local-variable 'async-callback-value-set) t)))))
         (set (make-local-variable 'async-callback-value) 'error)
         (set (make-local-variable 'async-callback-value-set) t)
         (error "Async Emacs process failed with exit code %d"
@@ -94,14 +99,12 @@
 
 (defun async-batch-invoke ()
   "Called from the child Emacs process' command-line."
-  (with-temp-buffer
-    (insert (nth 5 command-line-args))
-    (goto-char (point-min))
-    ;; Strip out the binding to `buf', as it is unreadable
-    (while (re-search-forward "(buf \\. #<[^)]+)" nil t)
-      (delete-region (match-beginning 0) (match-end 0)))
-    (goto-char (point-min))
-    (prin1 (funcall (eval (read (current-buffer)))))))
+  (condition-case err
+      (prin1 (funcall (eval (read (nth 5 command-line-args)))))
+    (signal
+     (prin1 `(async-signal . ,err)))
+    (error
+     (prin1 `(async-signal . ,err)))))
 
 (defun async-get (proc)
   "Wait until PROC has successfully completed."
@@ -167,7 +170,24 @@ ready to use it."
                  222))))
     (message "I'm going to do some work here")
     ;; ....
-    (message "Async process done, result should be 222: %s" (async-get proc))))
+    (message "Async process done, result should be 222: %s"
+             (async-get proc))))
+
+(defun async-test-3 ()
+  (interactive)
+  (message "Starting async-test-3...")
+  (async-start
+   ;; What to do in the child process
+   (lambda ()
+     (message "This is a test")
+     (sleep-for 3)
+     (error "Error in child process")
+     222)
+
+   ;; What to do when it finishes
+   (lambda (result)
+     (message "Async process done, result should be 222: %s" result)))
+  (message "Starting async-test-1...done"))
 
 (provide 'async)
 
