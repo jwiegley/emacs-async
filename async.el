@@ -125,18 +125,26 @@
 (defun async-batch-invoke ()
   "Called from the child Emacs process' command-line."
   (condition-case err
-      (prin1 (funcall (eval (read (nth 5 command-line-args)))))
+      (prin1 (funcall (eval (read nil))))
     (signal
      (prin1 `(async-signal . ,err)))
     (error
      (prin1 `(async-signal . ,err)))))
 
+(defun async-ready (proc)
+  "Wait until PROC has successfully completed."
+  (and (eq 'exit (process-status proc))
+       async-callback-value-set))
+
+(defun async-wait (proc)
+  "Wait until PROC has successfully completed."
+  (while (not (async-ready proc))
+    (sit-for 0 50)))
+
 (defun async-get (proc)
   "Wait until PROC has successfully completed."
+  (async-wait proc)
   (with-current-buffer (process-buffer proc)
-    (while (and (not (eq 'exit (process-status proc)))
-                (not async-callback-value-set))
-      (sit-for 0 50))
     (prog1
         async-callback-value
       (kill-buffer (current-buffer)))))
@@ -162,11 +170,16 @@ ready to use it."
                             (expand-file-name invocation-name
                                               invocation-directory)
                             "-Q" "-l" (find-library-name "async")
-                            "-batch" "-f" "async-batch-invoke"
-                            (prin1-to-string (list 'quote ,start-func)))))
+                            "-batch" "-f" "async-batch-invoke")))
        (with-current-buffer ,bufvar
          (set (make-local-variable 'async-callback) ,finish-func)
          (set-process-sentinel ,procvar #'async-when-done)
+         (with-temp-buffer
+           (let ((print-escape-newlines t))
+             (prin1 (list 'quote ,start-func) (current-buffer)))
+           (insert ?\n)
+           (process-send-region ,procvar (point-min) (point-max))
+           (process-send-eof ,procvar))
          ,procvar))))
 
 (defun async-test-1 ()
