@@ -68,7 +68,7 @@
   "Simple asynchronous processing in Emacs"
   :group 'emacs)
 
-(defvar async-callback)
+(defvar async-callback nil)
 (defvar async-callback-value nil)
 (defvar async-callback-value-set nil)
 
