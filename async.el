@@ -35,6 +35,8 @@
   :group 'emacs)
 
 (defvar async-debug nil)
+(defvar async-send-over-pipe nil)
+(defvar async-in-child-emacs nil)
 (defvar async-callback nil)
 (defvar async-callback-for-process nil)
 (defvar async-callback-value nil)
@@ -68,12 +70,8 @@ as follows:
                           (or exclude-regexp "-syntax-table\\'")
                           (symbol-name sym))))
                (let ((value (symbol-value sym)))
-                 (when (funcall (or predicate
-                                    (lambda (sym)
-                                      (let ((value (symbol-value sym)))
-                                        (or (not (functionp value))
-                                            (symbolp value)))))
-                                sym)
+                 (when (or (null predicate)
+                           (funcall predicate sym))
                    (setq bindings (cons `(quote ,value) bindings)
                          bindings (cons sym bindings)))))))
         bindings)))
@@ -114,14 +112,35 @@ as follows:
         (error "Async process '%s' failed with exit code %d"
                (process-name proc) (process-exit-status proc))))))
 
+(defun async--receive-sexp (&optional stream)
+  (let ((sexp (read (base64-decode-string (read stream)))))
+    (if async-debug
+        (message "Received sexp {{{%s}}}" (pp-to-string sexp)))
+    (eval sexp)))
+
+(defun async--insert-sexp (sexp)
+  (prin1 sexp (current-buffer))
+  ;; Just in case the string we're sending might contain EOF
+  (base64-encode-region (point-min) (point-max) t)
+  (goto-char (point-min)) (insert ?\")
+  (goto-char (point-max)) (insert ?\" ?\n))
+
+(defun async--transmit-sexp (process sexp)
+  (with-temp-buffer
+    (if async-debug
+        (message "Transmitting sexp {{{%s}}}" (pp-to-string sexp)))
+    (async--insert-sexp sexp)
+    (process-send-region process (point-min) (point-max))))
+
 (defun async-batch-invoke ()
   "Called from the child Emacs process' command-line."
+  (setq async-in-child-emacs t)
   (condition-case err
-      (let ((sexp (read nil)))
-        (if async-debug
-            (message "Received sexp {{{%s}}}" (pp-to-string sexp)))
-        (prin1 (funcall (eval sexp))))
+      (prin1 (funcall
+              (async--receive-sexp (unless async-send-over-pipe
+                                     command-line-args-left))))
     (error
+     (backtrace)
      (prin1 `(async-signal . ,err)))))
 
 (defun async-ready (future)
@@ -211,18 +230,20 @@ returns nil.  It can still be useful, however, as an argument to
 `async-ready' or `async-wait'."
   (require 'find-func)
   (let ((procvar (make-symbol "proc")))
-    `(let ((,procvar
-            (async-start-process "emacs" (expand-file-name invocation-name
-                                                           invocation-directory)
-                                 ,finish-func
-                                 "-Q" "-l" ,(find-library-name "async")
-                                 "-batch" "-f" "async-batch-invoke")))
-       (with-temp-buffer
-         (let ((print-escape-newlines t))
-           (prin1 (list 'quote ,start-func) (current-buffer)))
-         (insert ?\n)
-         (process-send-region ,procvar (point-min) (point-max))
-         (process-send-eof ,procvar))
+    `(let* ((sexp ,start-func)
+            (,procvar
+             (async-start-process
+              "emacs" (expand-file-name invocation-name
+                                        invocation-directory)
+              ,finish-func
+              "-Q" "-l" ,(find-library-name "async")
+              "-batch" "-f" "async-batch-invoke"
+              ,(and async-send-over-pipe
+                    '(with-temp-buffer
+                       (async--insert-sexp (list 'quote sexp))
+                       (buffer-string))))))
+       ,(if async-send-over-pipe
+            `(async--transmit-sexp ,procvar (list 'quote sexp)))
        ,procvar)))
 
 (defun async-test-1 ()
