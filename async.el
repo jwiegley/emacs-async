@@ -131,7 +131,7 @@ as follows:
         (goto-char (point-min)) (insert ?\")
         (goto-char (point-max)) (insert ?\" ?\n))
     (let ((print-escape-newlines t))
-      (prin1 (list 'quote ,start-func) (current-buffer)))
+      (prin1 sexp (current-buffer)))
     (insert ?\n)))
 
 (defun async--transmit-sexp (process sexp)
@@ -264,12 +264,12 @@ returns nil.  It can still be useful, however, as an argument to
               ,finish-func
               "-Q" "-l" ,(find-library-name "async")
               "-batch" "-f" "async-batch-invoke"
-              ,(and async-send-over-pipe
-                    '(with-temp-buffer
-                       (async--insert-sexp (list 'quote sexp))
-                       (buffer-string))))))
-       ,(if async-send-over-pipe
-            `(async--transmit-sexp ,procvar (list 'quote sexp)))
+              ,@(unless async-send-over-pipe
+                  '((with-temp-buffer
+                      (async--insert-sexp (list 'quote sexp))
+                      (buffer-string)))))))
+       ,@(if async-send-over-pipe
+             `((async--transmit-sexp ,procvar (list 'quote sexp))))
        ,procvar)))
 
 (defun async-test-1 ()
