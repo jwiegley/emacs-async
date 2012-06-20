@@ -173,6 +173,23 @@ its FINISH-FUNC is nil."
         async-callback-value
       (kill-buffer (current-buffer)))))
 
+(defun async-message-p (value)
+  "Return true of VALUE is an async.el message packet."
+  (and (listp value)
+       (plist-get value :async-message)))
+
+(defun async-send (&rest args)
+  "Send the given messages to the asychronous Emacs PROCESS."
+  (let ((args (append args '(:async-message t))))
+    (if async-in-child-emacs
+        (if async-callback
+            (funcall async-callback args))
+      (async--transmit-sexp (car args) (list 'quote (cdr args))))))
+
+(defun async-receive (&rest args)
+  "Send the given messages to the asychronous Emacs PROCESS."
+  (async--receive-sexp))
+
 ;;;###autoload
 (defun async-start-process (name program finish-func &rest program-args)
   "Start the executable PROGRAM asynchronously.  See `async-start'.
@@ -310,6 +327,45 @@ returns nil.  It can still be useful, however, as an argument to
                                   (process-exit-status proc)))
                        "3")
   (message "Starting async-test-4...done"))
+
+(defun async-test-5 ()
+  (interactive)
+  (message "Starting async-test-5...")
+  (let ((proc
+         (async-start
+          ;; What to do in the child process
+          (lambda ()
+            (message "This is a test, sending message")
+            (async-send :hello "world")
+            ;; wait for a message
+            (let ((msg (async-receive)))
+              (message "Child got message: %s"
+                       (plist-get msg :goodbye)))
+            (sleep-for 3)
+            222)
+
+          ;; What to do when it finishes
+          (lambda (result)
+            (if (async-message-p result)
+                (message "Got hello from child process: %s"
+                         (plist-get result :hello))
+              (message "Async process done, result should be 222: %s"
+                       result))))))
+    (async-send proc :goodbye "everyone"))
+  (message "Starting async-test-5...done"))
+
+(defun async-test-6 ()
+  (interactive)
+  (message "Starting async-test-6...")
+  (async-start
+   ;; What to do in the child process
+   `(lambda ()
+      ,(async-inject-variables "\\`user-mail-address\\'")
+      (format "user-mail-address = %s" user-mail-address))
+
+   ;; What to do when it finishes
+   (lambda (result)
+     (message "Async process done: %s" result))))
 
 (provide 'async)
 
