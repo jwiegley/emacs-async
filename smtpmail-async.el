@@ -48,7 +48,7 @@
       (with-temp-buffer
         (insert ,(buffer-substring-no-properties (point-min) (point-max)))
         ;; Pass in the variable environment for smtpmail
-        ,(async-inject-environment "\\`\\(smtpmail\\|\\(user-\\)?mail\\)-")
+        ,(async-inject-variables "\\`\\(smtpmail\\|\\(user-\\)?mail\\)-")
         (smtpmail-send-it)))
    'ignore))
 
