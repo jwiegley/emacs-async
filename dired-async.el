@@ -157,7 +157,9 @@
             ;; See if it's an inserted subdir, and rename that, too.
             (dired-rename-subdir ,file ,newname)
 
-            (dired-after-file-create ,newname ,actual-marker-char ,overwrite))))
+            (dired-after-file-create ,newname ,(and (boundp 'actual-marker-char)
+                                                    actual-marker-char)
+                                     ,overwrite))))
     (if (and dired-async-use-native-commands
              (not (file-remote-p file))
              (not (file-remote-p newname)))
