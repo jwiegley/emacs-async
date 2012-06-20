@@ -115,24 +115,17 @@ as follows:
                  (process-name proc) (process-exit-status proc)))))))
 
 (defun async--receive-sexp (&optional stream)
-  (let ((sexp (if async-send-over-pipe
-                  (read (base64-decode-string (read stream)))
-                (read stream))))
+  (let ((sexp (read (base64-decode-string (read stream)))))
     (if async-debug
         (message "Received sexp {{{%s}}}" (pp-to-string sexp)))
     (eval sexp)))
 
 (defun async--insert-sexp (sexp)
-  (if async-send-over-pipe
-      (progn
-        (prin1 sexp (current-buffer))
-        ;; Just in case the string we're sending might contain EOF
-        (base64-encode-region (point-min) (point-max) t)
-        (goto-char (point-min)) (insert ?\")
-        (goto-char (point-max)) (insert ?\" ?\n))
-    (let ((print-escape-newlines t))
-      (prin1 sexp (current-buffer)))
-    (insert ?\n)))
+  (prin1 sexp (current-buffer))
+  ;; Just in case the string we're sending might contain EOF
+  (base64-encode-region (point-min) (point-max) t)
+  (goto-char (point-min)) (insert ?\")
+  (goto-char (point-max)) (insert ?\" ?\n))
 
 (defun async--transmit-sexp (process sexp)
   (with-temp-buffer
