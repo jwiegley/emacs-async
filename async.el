@@ -41,6 +41,7 @@
 (defvar async-callback-for-process nil)
 (defvar async-callback-value nil)
 (defvar async-callback-value-set nil)
+(defvar async-current-process nil)
 
 (defun async-inject-variables
   (include-regexp &optional predicate exclude-regexp)
@@ -82,48 +83,56 @@ as follows:
   "Process sentinal used to retrieve the value from the child process."
   (when (eq 'exit (process-status proc))
     (with-current-buffer (process-buffer proc)
-      (if (= 0 (process-exit-status proc))
-          (if async-callback-for-process
-              (if async-callback
-                  (prog1
-                      (funcall async-callback proc)
-                    (unless async-debug
-                      (kill-buffer (current-buffer))))
-                (set (make-local-variable 'async-callback-value) proc)
-                (set (make-local-variable 'async-callback-value-set) t))
-            (goto-char (point-max))
-            (backward-sexp)
-            (let ((result (read (current-buffer))))
-              (if (and (listp result)
-                       (eq 'async-signal (car result)))
-                  (if (eq 'error (car (cdr result)))
-                      (error (cadr (cdr result)))
-                    (signal (cadr result)
-                            (cddr result)))
+      (let ((async-current-process proc))
+        (if (= 0 (process-exit-status proc))
+            (if async-callback-for-process
                 (if async-callback
                     (prog1
-                        (funcall async-callback result)
+                        (funcall async-callback proc)
                       (unless async-debug
                         (kill-buffer (current-buffer))))
-                  (set (make-local-variable 'async-callback-value) result)
-                  (set (make-local-variable 'async-callback-value-set) t)))))
-        (set (make-local-variable 'async-callback-value) 'error)
-        (set (make-local-variable 'async-callback-value-set) t)
-        (error "Async process '%s' failed with exit code %d"
-               (process-name proc) (process-exit-status proc))))))
+                  (set (make-local-variable 'async-callback-value) proc)
+                  (set (make-local-variable 'async-callback-value-set) t))
+              (goto-char (point-max))
+              (backward-sexp)
+              (let ((result (read (current-buffer))))
+                (if (and (listp result)
+                         (eq 'async-signal (car result)))
+                    (if (eq 'error (car (cdr result)))
+                        (error (cadr (cdr result)))
+                      (signal (cadr result)
+                              (cddr result)))
+                  (if async-callback
+                      (prog1
+                          (funcall async-callback result)
+                        (unless async-debug
+                          (kill-buffer (current-buffer))))
+                    (set (make-local-variable 'async-callback-value) result)
+                    (set (make-local-variable 'async-callback-value-set) t)))))
+          (set (make-local-variable 'async-callback-value) 'error)
+          (set (make-local-variable 'async-callback-value-set) t)
+          (error "Async process '%s' failed with exit code %d"
+                 (process-name proc) (process-exit-status proc)))))))
 
 (defun async--receive-sexp (&optional stream)
-  (let ((sexp (read (base64-decode-string (read stream)))))
+  (let ((sexp (if async-send-over-pipe
+                  (read (base64-decode-string (read stream)))
+                (read stream))))
     (if async-debug
         (message "Received sexp {{{%s}}}" (pp-to-string sexp)))
     (eval sexp)))
 
 (defun async--insert-sexp (sexp)
-  (prin1 sexp (current-buffer))
-  ;; Just in case the string we're sending might contain EOF
-  (base64-encode-region (point-min) (point-max) t)
-  (goto-char (point-min)) (insert ?\")
-  (goto-char (point-max)) (insert ?\" ?\n))
+  (if async-send-over-pipe
+      (progn
+        (prin1 sexp (current-buffer))
+        ;; Just in case the string we're sending might contain EOF
+        (base64-encode-region (point-min) (point-max) t)
+        (goto-char (point-min)) (insert ?\")
+        (goto-char (point-max)) (insert ?\" ?\n))
+    (let ((print-escape-newlines t))
+      (prin1 (list 'quote ,start-func) (current-buffer)))
+    (insert ?\n)))
 
 (defun async--transmit-sexp (process sexp)
   (with-temp-buffer
@@ -152,7 +161,7 @@ would result from a call to `async-get' on that FUTURE."
 (defun async-wait (future)
   "Wait for FUTURE to become ready."
   (while (not (async-ready future))
-    (sit-for 0 50)))
+    (sit-for 0.05)))
 
 (defun async-get (future)
   "Get the value from an asynchronously function when it is ready.
