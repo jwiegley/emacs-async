@@ -34,12 +34,13 @@
   "Simple asynchronous processing in Emacs"
   :group 'emacs)
 
+(defvar async-debug nil)
 (defvar async-callback nil)
 (defvar async-callback-for-process nil)
 (defvar async-callback-value nil)
 (defvar async-callback-value-set nil)
 
-(defmacro async-inject-variables
+(defun async-inject-variables
   (include-regexp &optional predicate exclude-regexp)
   "Return a `setq' form that replicates part of the calling environment.
 It sets the value for every variable matching INCLUDE-REGEXP and
@@ -56,26 +57,26 @@ as follows:
             ,(async-inject-variables \"\\`\\(smtpmail\\|\\(user-\\)?mail\\)-\")
             (smtpmail-send-it)))
        'ignore)"
-  `'(setq
-     ,@(let (bindings)
-         (mapatoms
-          (lambda (sym)
-            (if (and (boundp sym)
-                     (or (null include-regexp)
-                         (string-match include-regexp (symbol-name sym)))
-                     (not (string-match
-                           (or exclude-regexp "-syntax-table\\'")
-                           (symbol-name sym))))
-                (let ((value (symbol-value sym)))
-                  (when (funcall (or predicate
-                                     (lambda (sym)
-                                       (let ((value (symbol-value sym)))
-                                         (or (not (functionp value))
-                                             (symbolp value)))))
-                                 sym)
-                    (setq bindings (cons `(quote ,value) bindings)
-                          bindings (cons sym bindings)))))))
-         bindings)))
+  `(setq
+    ,@(let (bindings)
+        (mapatoms
+         (lambda (sym)
+           (if (and (boundp sym)
+                    (or (null include-regexp)
+                        (string-match include-regexp (symbol-name sym)))
+                    (not (string-match
+                          (or exclude-regexp "-syntax-table\\'")
+                          (symbol-name sym))))
+               (let ((value (symbol-value sym)))
+                 (when (funcall (or predicate
+                                    (lambda (sym)
+                                      (let ((value (symbol-value sym)))
+                                        (or (not (functionp value))
+                                            (symbolp value)))))
+                                sym)
+                   (setq bindings (cons `(quote ,value) bindings)
+                         bindings (cons sym bindings)))))))
+        bindings)))
 
 (defalias 'async-inject-environment 'async-inject-variables)
 
@@ -88,7 +89,8 @@ as follows:
               (if async-callback
                   (prog1
                       (funcall async-callback proc)
-                    (kill-buffer (current-buffer)))
+                    (unless async-debug
+                      (kill-buffer (current-buffer))))
                 (set (make-local-variable 'async-callback-value) proc)
                 (set (make-local-variable 'async-callback-value-set) t))
             (goto-char (point-max))
@@ -103,18 +105,22 @@ as follows:
                 (if async-callback
                     (prog1
                         (funcall async-callback result)
-                      (kill-buffer (current-buffer)))
+                      (unless async-debug
+                        (kill-buffer (current-buffer))))
                   (set (make-local-variable 'async-callback-value) result)
                   (set (make-local-variable 'async-callback-value-set) t)))))
         (set (make-local-variable 'async-callback-value) 'error)
         (set (make-local-variable 'async-callback-value-set) t)
-        (error "Async Emacs process failed with exit code %d"
-               (process-exit-status proc))))))
+        (error "Async process '%s' failed with exit code %d"
+               (process-name proc) (process-exit-status proc))))))
 
 (defun async-batch-invoke ()
   "Called from the child Emacs process' command-line."
   (condition-case err
-      (prin1 (funcall (eval (read nil))))
+      (let ((sexp (read nil)))
+        (if async-debug
+            (message "Received sexp {{{%s}}}" (pp-to-string sexp)))
+        (prin1 (funcall (eval sexp))))
     (error
      (prin1 `(async-signal . ,err)))))
 
@@ -140,24 +146,20 @@ its FINISH-FUNC is nil."
       (kill-buffer (current-buffer)))))
 
 ;;;###autoload
-(defmacro async-start-process (name program finish-func &rest program-args)
+(defun async-start-process (name program finish-func &rest program-args)
   "Start the executable PROGRAM asynchronously.  See `async-start'.
 PROGRAM is passed PROGRAM-ARGS, calling FINISH-FUNC with the
 process object when done.  If FINISH-FUNC is nil, the future
 object will return the process object when the program is
 finished."
-(let ((bufvar (make-symbol "buf"))
-      (procvar (make-symbol "proc")))
-  `(let* ((,bufvar (generate-new-buffer ,(concat "*" name "*")))
-          (,procvar
-           ,`(apply #'start-process ,name ,bufvar ,program
-                    (quote ,program-args))))
-     (with-current-buffer ,bufvar
-       (set (make-local-variable 'async-callback) ,finish-func)
-       (set-process-sentinel ,procvar #'async-when-done)
-       ,(unless (string= name "emacs")
-          '(set (make-local-variable 'async-callback-for-process) t))
-       ,procvar))))
+  (let* ((buf (generate-new-buffer (concat "*" name "*")))
+         (proc (apply #'start-process name buf program program-args)))
+    (with-current-buffer buf
+      (set (make-local-variable 'async-callback) finish-func)
+      (set-process-sentinel proc #'async-when-done)
+      (unless (string= name "emacs")
+        (set (make-local-variable 'async-callback-for-process) t))
+      proc)))
 
 ;;;###autoload
 (defmacro async-start (start-func &optional finish-func)
@@ -215,14 +217,13 @@ returns nil.  It can still be useful, however, as an argument to
                                  ,finish-func
                                  "-Q" "-l" ,(find-library-name "async")
                                  "-batch" "-f" "async-batch-invoke")))
-       (with-current-buffer (process-buffer ,procvar)
-         (with-temp-buffer
-           (let ((print-escape-newlines t))
-             (prin1 (list 'quote ,start-func) (current-buffer)))
-           (insert ?\n)
-           (process-send-region ,procvar (point-min) (point-max))
-           (process-send-eof ,procvar))
-         ,procvar))))
+       (with-temp-buffer
+         (let ((print-escape-newlines t))
+           (prin1 (list 'quote ,start-func) (current-buffer)))
+         (insert ?\n)
+         (process-send-region ,procvar (point-min) (point-max))
+         (process-send-eof ,procvar))
+       ,procvar)))
 
 (defun async-test-1 ()
   (interactive)
