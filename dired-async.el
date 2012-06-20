@@ -1,3 +1,4 @@
+;;; -*- lexical-binding: t -*-
 ;;; dired-async --- Copy/move/delete asynchronously in dired
 
 ;; Copyright (C) 2012 John Wiegley
@@ -31,6 +32,48 @@
 ;;
 ;;   (eval-after-load "dired-aux"
 ;;     '(require 'dired-async))
+;;
+;; NOTE: If you have `delete-by-moving-to-trash' set to t, and you enable
+;; `dired-async-use-native-commands', you will need to install the following
+;; bash script on your system's PATH as "rmtrash".  Please edit to suit your
+;; system.  It depends on the GNU realpath
+;;
+;; #!/bin/bash
+;;
+;; function mv_to_trash {
+;;     path="$1"
+;;     trash="$2"
+;;
+;;     if test -L "$path"; then
+;;         rm -f "$path"           # don't trash symlinks, just remove them
+;;     else
+;;         target="$trash"/$(basename "$path")
+;;         if test -e "$target"; then
+;;             for (( index=$$ ; 1; index=index+1 )); do
+;;                 target="$target"-"$index"
+;;                 if ! test -e "$target"; then
+;;                     break
+;;                 fi
+;;             done
+;;         fi
+;;         mv -f "$path" "$target" # don't worry about race-condition overwrites
+;;     fi
+;; }
+;;
+;; for item in "$@"; do
+;;     if [[ -n "$item" && ${item:0:1} == '-' ]]; then
+;;         continue
+;;     elif ! test -e "$item"; then
+;;         continue
+;;     else
+;;         target=$(realpath "$item")
+;;         if [[ "$target" =~ ^/Volumes/([^/]+)/ ]]; then
+;;             mv_to_trash "$item" "/Volumes/${BASH_REMATCH[1]}/.Trashes/$EUID"
+;;         else
+;;             mv_to_trash "$item" "$HOME/.Trash"
+;;         fi
+;;     fi
+;; done
 
 ;;; Code:
 
@@ -40,6 +83,11 @@
 (defgroup dired-async nil
   "Copy/move/delete asynchronously in dired"
   :group 'dired)
+
+(defcustom dired-async-use-native-commands nil
+  "If non-nil, use native cp/mv/rm commands for local-only files."
+  :type 'boolean
+  :group 'dired-async)
 
 (defun dired-after-file-create (to actual-marker-char &optional overwrite)
   (if overwrite
@@ -59,31 +107,39 @@
   (when (and (eq t (car (file-attributes from)))
              (file-in-directory-p to from))
     (error "Cannot copy `%s' into its subdirectory `%s'" from to))
-  (let ((attrs (file-attributes from)))
+  (let ((attrs (file-attributes from))
+        (callback `(lambda (&optional ignore)
+                     (dired-after-file-create ,to ,actual-marker-char
+                                              ,overwrite))))
     (if (and recursive
              (eq t (car attrs))
              (or (eq recursive 'always)
                  (yes-or-no-p (format "Recursive copies of %s? " from))))
         ;; This is a directory.
-        (async-start
-         `(lambda ()
-            (copy-directory ,from ,to ,preserve-time))
-         `(lambda (&optional ignore)
-            (dired-after-file-create ,to ,actual-marker-char ,overwrite)))
+        (if (and dired-async-use-native-commands
+                 (not (file-remote-p from))
+                 (not (file-remote-p to)))
+            (async-start-process "cp" (executable-find "cp") callback
+                                 (if preserve-time "-pR" "-R") from to)
+          (async-start (apply-partially #'copy-directory from to preserve-time)
+                       callback))
       ;; Not a directory.
       (or top (dired-handle-overwrite to))
       (condition-case err
           (if (stringp (car attrs))
               ;; It is a symlink
               (make-symbolic-link (car attrs) to ok-flag)
-            (async-start
-             `(lambda ()
-                ;; jww (2012-06-18): Error gets absorbed if one happens at all
-                ;; right now.  I need to pass back the exception from the
-                ;; child process.
-                (copy-file ,from ,to ,ok-flag ,preserve-time))
-             `(lambda (&optional ignore)
-                (dired-after-file-create ,to ,actual-marker-char ,overwrite))))
+            (if (and dired-async-use-native-commands
+                     (not (file-remote-p from))
+                     (not (file-remote-p to)))
+                (let ((args (list "-f" from to)))
+                  (if preserve-time
+                      (setq args (cons "-p" args)))
+                  (apply #'async-start-process "cp" (executable-find "cp")
+                         callback args))
+              (async-start (apply-partially #'copy-file from to ok-flag
+                                            preserve-time)
+                           callback)))
         (file-date-error
          (push (dired-make-relative from)
                dired-create-files-failures)
@@ -91,20 +147,29 @@
 
 (defun dired-rename-file (file newname ok-if-already-exists)
   (dired-handle-overwrite newname)
-  (async-start
-   `(lambda ()
-      ;; error is caught in -create-files
-      (rename-file ,file ,newname ,ok-if-already-exists))
-   `(lambda (&optional ignore)
-      ;; Silently rename the visited file of any buffer visiting this file.
-      (and (get-file-buffer ,file)
-           (with-current-buffer (get-file-buffer ,file)
-             (set-visited-file-name ,newname nil t)))
-      (dired-remove-file ,file)
-      ;; See if it's an inserted subdir, and rename that, too.
-      (dired-rename-subdir ,file ,newname)
+  (let ((callback
+         `(lambda (&optional ignore)
+            ;; Silently rename the visited file of any buffer visiting this
+            ;; file.
+            (and (get-file-buffer ,file)
+                 (with-current-buffer (get-file-buffer ,file)
+                   (set-visited-file-name ,newname nil t)))
+            (dired-remove-file ,file)
+            ;; See if it's an inserted subdir, and rename that, too.
+            (dired-rename-subdir ,file ,newname)
 
-      (dired-after-file-create ,newname ,actual-marker-char ,overwrite))))
+            (dired-after-file-create ,newname ,actual-marker-char ,overwrite))))
+    (if (and dired-async-use-native-commands
+             (not (file-remote-p file))
+             (not (file-remote-p newname)))
+        (let ((args (list "-f" file newname)))
+          (unless ok-if-already-exists
+            (setq args (cons "-n" args)))
+          (apply #'async-start-process "mv" (executable-find "mv")
+                 callback args))
+      (async-start (apply-partially #'rename-file file newname
+                                    ok-if-already-exists)
+                   callback))))
 
 (defun dired-delete-file (file &optional recursive trash) "\
 Delete FILE or directory (possibly recursively if optional RECURSIVE is true.)
@@ -117,10 +182,17 @@ Anything else, ask for each sub-directory."
   ;; (and (file-directory-p fn) (not (file-symlink-p fn)))
   ;; but more efficient
   (if (not (eq t (car (file-attributes file))))
-      (async-start
-       `(lambda ()
-          (delete-file ,file ,trash))
-       'ignore)
+      (cond
+       ;; How to reliably trash files on other systems?  Use Emacs to do it
+       (trash
+        (async-start-process "rmtrash" (executable-find "rmtrash")
+                             'ignore "-f" file))
+       ((and (not trash) dired-async-use-native-commands
+             (not (file-remote-p file)))
+        (async-start-process "rm" (executable-find "rm") 'ignore "-f" file))
+       (t
+        (async-start (apply-partially #'delete-file file trash)
+                     'ignore)))
     (if (and recursive
              (directory-files file t dired-re-no-dot) ; Not empty.
              (or (eq recursive 'always)
@@ -132,10 +204,18 @@ Anything else, ask for each sub-directory."
                                       (dired-make-relative file)))))
         (if (eq recursive 'top) (setq recursive 'always)) ; Don't ask again.
       (setq recursive nil))
-    (async-start
-     `(lambda ()
-        (delete-directory ,file (quote ,recursive) ,trash))
-     'ignore)))
+    (if (and dired-async-use-native-commands
+             (not (file-remote-p file)))
+        (if recursive
+            (if trash
+                (async-start-process "rmtrash" (executable-find "rmtrash")
+                                     'ignore "-fr" file)
+              (async-start-process "rm" (executable-find "rm")
+                                   'ignore "-fr" file))
+          (async-start-process "rmdir" (executable-find "rmdir")
+                               'ignore file))
+      (async-start (apply-partially #'delete-directory file recursive trash)
+                   'ignore))))
 
 (defun dired-create-files (file-creator operation fn-list name-constructor
                                         &optional marker-char)
