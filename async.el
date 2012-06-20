@@ -35,7 +35,7 @@
   :group 'emacs)
 
 (defvar async-debug nil)
-(defvar async-send-over-pipe nil)
+(defvar async-send-over-pipe t)
 (defvar async-in-child-emacs nil)
 (defvar async-callback nil)
 (defvar async-callback-for-process nil)
@@ -115,9 +115,12 @@ as follows:
                  (process-name proc) (process-exit-status proc)))))))
 
 (defun async--receive-sexp (&optional stream)
-  (let ((sexp (read (base64-decode-string (read stream)))))
+  (let ((sexp (base64-decode-string (read stream))))
     (if async-debug
         (message "Received sexp {{{%s}}}" (pp-to-string sexp)))
+    (setq sexp (read sexp))
+    (if async-debug
+        (message "Read sexp {{{%s}}}" (pp-to-string sexp)))
     (eval sexp)))
 
 (defun async--insert-sexp (sexp)
@@ -191,7 +194,8 @@ process object when done.  If FINISH-FUNC is nil, the future
 object will return the process object when the program is
 finished."
   (let* ((buf (generate-new-buffer (concat "*" name "*")))
-         (proc (apply #'start-process name buf program program-args)))
+         (proc (let ((process-connection-type nil))
+                 (apply #'start-process name buf program program-args))))
     (with-current-buffer buf
       (set (make-local-variable 'async-callback) finish-func)
       (set-process-sentinel proc #'async-when-done)
