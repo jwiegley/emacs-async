@@ -1,4 +1,3 @@
-;;; -*- lexical-binding: t -*-
 ;;; dired-async --- Copy/move/delete asynchronously in dired
 
 ;; Copyright (C) 2012 John Wiegley
