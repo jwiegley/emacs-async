@@ -88,6 +88,22 @@
   :type 'boolean
   :group 'dired-async)
 
+(defface dired-async-in-process-face
+  '((t (:background "yellow")))
+  "Face used to show that an asynchronous operation is in progress."
+  :group 'dired-async)
+
+(defun dired-async-highlight-file (file)
+  (save-excursion
+    (dired-goto-file file)
+    (let ((overlay (make-overlay (line-beginning-position)
+                                 (line-end-position))))
+      (overlay-put overlay 'face 'dired-async-in-process-face)
+      overlay)))
+
+(defun dired-async-remove-highlight (overlay)
+  (delete-overlay overlay))
+
 (defun dired-after-file-create (to actual-marker-char &optional overwrite)
   (if overwrite
       ;; If we get here, file-creator hasn't been aborted
@@ -118,8 +134,12 @@
         (if (and dired-async-use-native-commands
                  (not (file-remote-p from))
                  (not (file-remote-p to)))
-            (async-start-process "cp" (executable-find "cp") callback
-                                 (if preserve-time "-pR" "-R") from to)
+            (let ((args (list "-fR" from to)))
+              (if preserve-time
+                  (setq args (cons "-p" args)))
+              (unless ok-flag
+                (setq args (cons "-n" args)))
+              (async-start-process "cp" (executable-find "cp") callback args))
           (async-start (apply-partially #'copy-directory from to preserve-time)
                        callback))
       ;; Not a directory.
@@ -134,6 +154,8 @@
                 (let ((args (list "-f" from to)))
                   (if preserve-time
                       (setq args (cons "-p" args)))
+                  (unless ok-flag
+                    (setq args (cons "-n" args)))
                   (apply #'async-start-process "cp" (executable-find "cp")
                          callback args))
               (async-start (apply-partially #'copy-file from to ok-flag
