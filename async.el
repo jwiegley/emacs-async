@@ -139,14 +139,19 @@ as follows:
 
 (defun async-batch-invoke ()
   "Called from the child Emacs process' command-line."
-  (setq async-in-child-emacs t)
-  (condition-case err
+  (setq async-in-child-emacs t
+        debug-on-error async-debug)
+  (if debug-on-error
       (prin1 (funcall
               (async--receive-sexp (unless async-send-over-pipe
                                      command-line-args-left))))
-    (error
-     (backtrace)
-     (prin1 `(async-signal . ,err)))))
+    (condition-case err
+        (prin1 (funcall
+                (async--receive-sexp (unless async-send-over-pipe
+                                       command-line-args-left))))
+      (error
+       (backtrace)
+       (prin1 `(async-signal . ,err))))))
 
 (defun async-ready (future)
   "Query a FUTURE to see if the ready is ready -- i.e., if no blocking
