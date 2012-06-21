@@ -117,31 +117,46 @@
   (defvar overwrite)
   (defvar async-callback))
 
+(defmacro dired-async-wrap-call (file callback forms)
+  `(let ((overlay (dired-async-highlight-file ,file)))
+     ,(if callback
+          `(setq ,callback `(lambda (ret)
+                              (dired-async-remove-highlight ,overlay)
+                              (funcall ,,callback ret))))
+     ,forms))
+
+(put 'dired-async-wrap-call 'lisp-indent-function 2)
+
 (defun dired-copy-file-recursive (from to ok-flag &optional
                                        preserve-time top recursive)
   (when (and (eq t (car (file-attributes from)))
              (file-in-directory-p to from))
     (error "Cannot copy `%s' into its subdirectory `%s'" from to))
   (let ((attrs (file-attributes from))
-        (callback `(lambda (&optional ignore)
-                     (dired-after-file-create ,to ,actual-marker-char
-                                              ,overwrite))))
+        (callback (if (boundp 'actual-marker-char)
+                      `(lambda (&optional ignore)
+                         (dired-after-file-create ,to ,actual-marker-char
+                                                  ,overwrite))
+                    'ignore)))
     (if (and recursive
              (eq t (car attrs))
              (or (eq recursive 'always)
                  (yes-or-no-p (format "Recursive copies of %s? " from))))
         ;; This is a directory.
-        (if (and dired-async-use-native-commands
-                 (not (file-remote-p from))
-                 (not (file-remote-p to)))
-            (let ((args (list "-fR" from to)))
-              (if preserve-time
-                  (setq args (cons "-p" args)))
-              (unless ok-flag
-                (setq args (cons "-n" args)))
-              (async-start-process "cp" (executable-find "cp") callback args))
-          (async-start (apply-partially #'copy-directory from to preserve-time)
-                       callback))
+        (dired-async-wrap-call from callback
+          (if (and dired-async-use-native-commands
+                   (not (file-remote-p from))
+                   (not (file-remote-p to)))
+              (let ((args (list "-fR" from to)))
+                (if preserve-time
+                    (setq args (cons "-p" args)))
+                (unless ok-flag
+                  (setq args (cons "-n" args)))
+                (apply #'async-start-process "cp" (executable-find "cp")
+                       callback args))
+            (async-start (apply-partially #'copy-directory from to
+                                          preserve-time)
+                         callback)))
       ;; Not a directory.
       (or top (dired-handle-overwrite to))
       (condition-case err
@@ -158,9 +173,10 @@
                     (setq args (cons "-n" args)))
                   (apply #'async-start-process "cp" (executable-find "cp")
                          callback args))
-              (async-start (apply-partially #'copy-file from to ok-flag
-                                            preserve-time)
-                           callback)))
+              (dired-async-wrap-call from callback
+                (async-start (apply-partially #'copy-file from to ok-flag
+                                              preserve-time)
+                             callback))))
         (file-date-error
          (push (dired-make-relative from)
                dired-create-files-failures)
@@ -169,19 +185,20 @@
 (defun dired-rename-file (file newname ok-if-already-exists)
   (dired-handle-overwrite newname)
   (let ((callback
-         `(lambda (&optional ignore)
-            ;; Silently rename the visited file of any buffer visiting this
-            ;; file.
-            (and (get-file-buffer ,file)
-                 (with-current-buffer (get-file-buffer ,file)
-                   (set-visited-file-name ,newname nil t)))
-            (dired-remove-file ,file)
-            ;; See if it's an inserted subdir, and rename that, too.
-            (dired-rename-subdir ,file ,newname)
+         (if (boundp 'actual-marker-char)
+             `(lambda (&optional ignore)
+                ;; Silently rename the visited file of any buffer visiting this
+                ;; file.
+                (and (get-file-buffer ,file)
+                     (with-current-buffer (get-file-buffer ,file)
+                       (set-visited-file-name ,newname nil t)))
+                (dired-remove-file ,file)
+                ;; See if it's an inserted subdir, and rename that, too.
+                (dired-rename-subdir ,file ,newname)
 
-            (dired-after-file-create ,newname ,(and (boundp 'actual-marker-char)
-                                                    actual-marker-char)
-                                     ,overwrite))))
+                (dired-after-file-create ,newname ,actual-marker-char
+                                         ,overwrite))
+           'ignore)))
     (if (and dired-async-use-native-commands
              (not (file-remote-p file))
              (not (file-remote-p newname)))
@@ -190,9 +207,10 @@
             (setq args (cons "-n" args)))
           (apply #'async-start-process "mv" (executable-find "mv")
                  callback args))
-      (async-start (apply-partially #'rename-file file newname
-                                    ok-if-already-exists)
-                   callback))))
+      (dired-async-wrap-call file callback
+        (async-start (apply-partially #'rename-file file newname
+                                      ok-if-already-exists)
+                     callback)))))
 
 (defun dired-delete-file (file &optional recursive trash) "\
 Delete FILE or directory (possibly recursively if optional RECURSIVE is true.)
@@ -205,17 +223,18 @@ Anything else, ask for each sub-directory."
   ;; (and (file-directory-p fn) (not (file-symlink-p fn)))
   ;; but more efficient
   (if (not (eq t (car (file-attributes file))))
-      (cond
-       ;; How to reliably trash files on other systems?  Use Emacs to do it
-       (trash
-        (async-start-process "rmtrash" (executable-find "rmtrash")
-                             'ignore "-f" file))
-       ((and (not trash) dired-async-use-native-commands
-             (not (file-remote-p file)))
-        (async-start-process "rm" (executable-find "rm") 'ignore "-f" file))
-       (t
-        (async-start (apply-partially #'delete-file file trash)
-                     'ignore)))
+      (dired-async-wrap-call file nil
+        (cond
+         ;; How to reliably trash files on other systems?  Use Emacs to do it
+         (trash
+          (async-start-process "rmtrash" (executable-find "rmtrash")
+                               'ignore "-f" file))
+         ((and (not trash) dired-async-use-native-commands
+               (not (file-remote-p file)))
+          (async-start-process "rm" (executable-find "rm") 'ignore "-f" file))
+         (t
+          (async-start (apply-partially #'delete-file file trash)
+                       'ignore))))
     (if (and recursive
              (directory-files file t dired-re-no-dot) ; Not empty.
              (or (eq recursive 'always)
@@ -227,18 +246,19 @@ Anything else, ask for each sub-directory."
                                       (dired-make-relative file)))))
         (if (eq recursive 'top) (setq recursive 'always)) ; Don't ask again.
       (setq recursive nil))
-    (if (and dired-async-use-native-commands
-             (not (file-remote-p file)))
-        (if recursive
-            (if trash
-                (async-start-process "rmtrash" (executable-find "rmtrash")
-                                     'ignore "-fr" file)
-              (async-start-process "rm" (executable-find "rm")
-                                   'ignore "-fr" file))
-          (async-start-process "rmdir" (executable-find "rmdir")
-                               'ignore file))
-      (async-start (apply-partially #'delete-directory file recursive trash)
-                   'ignore))))
+    (dired-async-wrap-call file nil
+      (if (and dired-async-use-native-commands
+               (not (file-remote-p file)))
+          (if recursive
+              (if trash
+                  (async-start-process "rmtrash" (executable-find "rmtrash")
+                                       'ignore "-fr" file)
+                (async-start-process "rm" (executable-find "rm")
+                                     'ignore "-fr" file))
+            (async-start-process "rmdir" (executable-find "rmdir")
+                                 'ignore file))
+        (async-start (apply-partially #'delete-directory file recursive trash)
+                     'ignore)))))
 
 (defun dired-create-files (file-creator operation fn-list name-constructor
                                         &optional marker-char)
@@ -264,8 +284,8 @@ corresponding new file name or nil to skip.
 Optional MARKER-CHAR is a character with which to mark every
 newfile's entry, or t to use the current marker character if the
 old file was marked."
-  (let (dired-create-files-failures failures
-        skipped (success-count 0) (total (length fn-list)))
+  (let (dired-create-files-failures
+        failures skipped (success-count 0) (total (length fn-list)))
     (let (to overwrite-query
              overwrite-backup-query)	; for dired-handle-overwrite
       (dolist (from fn-list)
@@ -306,7 +326,8 @@ ESC or `q' to not overwrite any of the remaining files,
             ;; With the new behavior of `copy-directory'
             ;; (similar to the `cp' shell command) we don't
             ;; need such a construction of the target directory,
-            ;; so modify the destination TO to "~/test/" instead of "~/test/foo/".
+            ;; so modify the destination TO to "~/test/" instead of
+            ;; "~/test/foo/".
             (let ((destname (file-name-directory to)))
               (when (and (file-directory-p from)
                          (file-directory-p to)
@@ -332,21 +353,21 @@ ESC or `q' to not overwrite any of the remaining files,
       (setq failures (nconc failures dired-create-files-failures))
       (dired-log-summary
        (format "%s failed for %d file%s in %d requests"
-                operation (length failures)
-                (dired-plural-s (length failures))
-                total)
+               operation (length failures)
+               (dired-plural-s (length failures))
+               total)
        failures))
      (failures
       (dired-log-summary
        (format "%s failed for %d of %d file%s"
-                operation (length failures)
-                total (dired-plural-s total))
+               operation (length failures)
+               total (dired-plural-s total))
        failures))
      (skipped
       (dired-log-summary
        (format "%s: %d of %d file%s skipped"
-                operation (length skipped) total
-                (dired-plural-s total))
+               operation (length skipped) total
+               (dired-plural-s total))
        skipped))
      (t
       (message "%s proceeding asynchronously..." operation)))))
