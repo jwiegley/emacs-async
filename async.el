@@ -111,10 +111,11 @@ as follows:
               (backward-sexp)
               (async-handle-result async-callback (read (current-buffer))
                                    (current-buffer)))
-          (set (make-local-variable 'async-callback-value) 'error)
-          (set (make-local-variable 'async-callback-value-set) t)
-          (error "Async process '%s' failed with exit code %d"
-                 (process-name proc) (process-exit-status proc)))))))
+          (set (make-local-variable 'async-callback-value)
+               (list 'error
+                     (format "Async process '%s' failed with exit code %d"
+                             (process-name proc) (process-exit-status proc))))
+          (set (make-local-variable 'async-callback-value-set) t))))))
 
 (defun async--receive-sexp (&optional stream)
   (let ((sexp (base64-decode-string (read stream))))
