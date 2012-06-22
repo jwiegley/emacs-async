@@ -79,6 +79,20 @@ as follows:
 
 (defalias 'async-inject-environment 'async-inject-variables)
 
+(defun async-handle-result (func result buf)
+  (if (null func)
+      (progn
+        (set (make-local-variable 'async-callback-value) result)
+        (set (make-local-variable 'async-callback-value-set) t))
+    (unwind-protect
+        (if (and (listp result)
+                 (eq 'async-signal (nth 0 result)))
+            (signal (car (nth 1 result))
+                    (cdr (nth 1 result)))
+          (funcall func result))
+      (unless async-debug
+        (kill-buffer buf)))))
+
 (defun async-when-done (proc &optional change)
   "Process sentinal used to retrieve the value from the child process."
   (when (eq 'exit (process-status proc))
@@ -95,20 +109,8 @@ as follows:
                   (set (make-local-variable 'async-callback-value-set) t))
               (goto-char (point-max))
               (backward-sexp)
-              (let ((result (read (current-buffer))))
-                (if (and (listp result)
-                         (eq 'async-signal (car result)))
-                    (if (eq 'error (car (cdr result)))
-                        (error (cadr (cdr result)))
-                      (signal (cadr result)
-                              (cddr result)))
-                  (if async-callback
-                      (prog1
-                          (funcall async-callback result)
-                        (unless async-debug
-                          (kill-buffer (current-buffer))))
-                    (set (make-local-variable 'async-callback-value) result)
-                    (set (make-local-variable 'async-callback-value-set) t)))))
+              (async-handle-result async-callback (read (current-buffer))
+                                   (current-buffer)))
           (set (make-local-variable 'async-callback-value) 'error)
           (set (make-local-variable 'async-callback-value-set) t)
           (error "Async process '%s' failed with exit code %d"
@@ -150,8 +152,7 @@ as follows:
                 (async--receive-sexp (unless async-send-over-pipe
                                        command-line-args-left))))
       (error
-       (backtrace)
-       (prin1 `(async-signal . ,err))))))
+       (prin1 (list 'async-signal err))))))
 
 (defun async-ready (future)
   "Query a FUTURE to see if the ready is ready -- i.e., if no blocking
@@ -171,9 +172,7 @@ FUTURE is returned by `async-start' or `async-start-process' when
 its FINISH-FUNC is nil."
   (with-current-buffer (process-buffer future)
     (async-wait future)
-    (prog1
-        async-callback-value
-      (kill-buffer (current-buffer)))))
+    (async-handle-result #'identity async-callback-value (current-buffer))))
 
 (defun async-message-p (value)
   "Return true of VALUE is an async.el message packet."
@@ -265,14 +264,16 @@ returns nil.  It can still be useful, however, as an argument to
               "emacs" (expand-file-name invocation-name
                                         invocation-directory)
               ,finish-func
-              "-Q" "-l" ,(find-library-name "async")
+              "-Q" "-l" ,(funcall (symbol-function 'find-library-name)
+                                  "async")
               "-batch" "-f" "async-batch-invoke"
-              ,@(unless async-send-over-pipe
-                  '((with-temp-buffer
-                      (async--insert-sexp (list 'quote sexp))
-                      (buffer-string)))))))
-       ,@(if async-send-over-pipe
-             `((async--transmit-sexp ,procvar (list 'quote sexp))))
+              (if async-send-over-pipe
+                  "<none>"
+                (with-temp-buffer
+                  (async--insert-sexp (list 'quote sexp))
+                  (buffer-string))))))
+       (if async-send-over-pipe
+           (async--transmit-sexp ,procvar (list 'quote sexp)))
        ,procvar)))
 
 (defmacro async-sandbox(func)
