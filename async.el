@@ -156,8 +156,9 @@ as follows:
 (defun async-ready (future)
   "Query a FUTURE to see if the ready is ready -- i.e., if no blocking
 would result from a call to `async-get' on that FUTURE."
-  (and (eq 'exit (process-status future))
-       async-callback-value-set))
+  (with-current-buffer (process-buffer future)
+    (and (memq (process-status future) '(exit signal))
+         async-callback-value-set)))
 
 (defun async-wait (future)
   "Wait for FUTURE to become ready."
@@ -168,8 +169,8 @@ would result from a call to `async-get' on that FUTURE."
   "Get the value from an asynchronously function when it is ready.
 FUTURE is returned by `async-start' or `async-start-process' when
 its FINISH-FUNC is nil."
-  (async-wait future)
   (with-current-buffer (process-buffer future)
+    (async-wait future)
     (prog1
         async-callback-value
       (kill-buffer (current-buffer)))))
@@ -273,6 +274,10 @@ returns nil.  It can still be useful, however, as an argument to
        ,@(if async-send-over-pipe
              `((async--transmit-sexp ,procvar (list 'quote sexp))))
        ,procvar)))
+
+(defmacro async-sandbox(func)
+  "Evaluate FUNC in a separate Emacs process, synchronously."
+  `(async-get (async-start ,func)))
 
 (defun async-test-1 ()
   (interactive)
