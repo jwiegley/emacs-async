@@ -186,7 +186,7 @@ ESC or `q' to not overwrite any of the remaining files,
     (async-start `(lambda ()
                     (require 'cl) (require 'dired-aux)
                     ,(async-inject-variables helm-async-env-variables-regexp)
-                    (let ((dired-recursive-copies 'always))
+                    (let ((dired-recursive-copies (quote always)))
                       (loop for (f . d) in (quote ,async-fn-list)
                             do (funcall (quote ,file-creator) f d t)))
                     ,(helm-async-maybe-kill-ftp))
