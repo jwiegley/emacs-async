@@ -60,9 +60,15 @@ Should take same args as `message'."
   :type  'function)
 
 (defcustom helm-async-log-file "/tmp/helm-async.log"
-  "Where file errors are printed."
+  "File use to communicate errors from Child Emacs to host Emacs."
   :group 'helm-async
   :type 'string)
+
+(defcustom helm-async-be-async t
+  "When non--nil make `dired-create-file' async.
+This allow to turn off async features provided to this package."
+  :group 'helm-async
+  :type  'boolean)
 
 (defface helm-async-message
     '((t (:foreground "yellow")))
@@ -194,19 +200,38 @@ ESC or `q' to not overwrite any of the remaining files,
                    (file-in-directory-p destname from)
                    (error "Cannot copy `%s' into its subdirectory `%s'"
                           from to)))
-            (push (cons from to) async-fn-list)))))
-    (async-start `(lambda ()
-                    (require 'cl) (require 'dired-aux)
-                    ,(async-inject-variables helm-async-env-variables-regexp)
-                    (condition-case err
-                        (let ((dired-recursive-copies (quote always)))
-                          (loop for (f . d) in (quote ,async-fn-list)
-                                do (funcall (quote ,file-creator) f d t)))
-                      (file-error
-                       (with-temp-file ,helm-async-log-file
-                         (insert (format "%S" err)))))
-                    ,(helm-async-maybe-kill-ftp))
-                 callback)
+            (if helm-async-be-async
+                (push (cons from to) async-fn-list)
+                (condition-case err
+                    (progn
+                      (funcall file-creator from to dired-overwrite-confirmed)
+                      (if overwrite
+                          ;; If we get here, file-creator hasn't been aborted
+                          ;; and the old entry (if any) has to be deleted
+                          ;; before adding the new entry.
+                          (dired-remove-file to))
+                      (setq success-count (1+ success-count))
+                      (message "%s: %d of %d" operation success-count total)
+                      (dired-add-file to actual-marker-char))
+                  (file-error		; FILE-CREATOR aborted
+                   (progn
+                     (push (dired-make-relative from)
+                           failures)
+                     (dired-log "%s `%s' to `%s' failed:\n%s\n"
+                                operation from to err)))))))))
+    (when (and async-fn-list helm-async-be-async)
+      (async-start `(lambda ()
+                      (require 'cl) (require 'dired-aux)
+                      ,(async-inject-variables helm-async-env-variables-regexp)
+                      (condition-case err
+                          (let ((dired-recursive-copies (quote always)))
+                            (loop for (f . d) in (quote ,async-fn-list)
+                                  do (funcall (quote ,file-creator) f d t)))
+                        (file-error
+                         (with-temp-file ,helm-async-log-file
+                           (insert (format "%S" err)))))
+                      ,(helm-async-maybe-kill-ftp))
+                   callback))
     (cond
      (dired-create-files-failures
       (setq failures (nconc failures dired-create-files-failures))
@@ -229,9 +254,15 @@ ESC or `q' to not overwrite any of the remaining files,
                 (dired-plural-s total))
        skipped))
      (t
-      (helm-async-mode 1)
-      (setq helm-async-operation (list operation (length fn-list)))
-      (message "%s proceeding asynchronously..." operation)))))
+      (if (and async-fn-list helm-async-be-async)
+          (progn
+            (helm-async-mode 1)
+            (setq helm-async-operation (list operation (length fn-list)))
+            (message "%s proceeding asynchronously..." operation))
+          (message "%s: %s file%s"
+                   operation success-count (dired-plural-s success-count))))))
+  (unless helm-async-be-async
+    (dired-move-to-filename)))
 
 
 (provide 'helm-async)
