@@ -59,6 +59,11 @@ Should take same args as `message'."
   :group 'helm-async
   :type  'function)
 
+(defcustom helm-async-log-file "/tmp/helm-async.log"
+  "Where file errors are printed."
+  :group 'helm-async
+  :type 'string)
+
 (defface helm-async-message
     '((t (:foreground "yellow")))
   "Face used for mode-line message.")
@@ -86,8 +91,15 @@ Should take same args as `message'."
   "Callback function used for operation handled by `dired-create-file'."
   (helm-async-mode -1)
   (when helm-async-operation
-    (funcall helm-async-message-function "Asynchronous %s of %s file(s) done"
-             (car helm-async-operation) (cadr helm-async-operation))))
+    (if (file-exists-p helm-async-log-file)
+        (progn
+          (pop-to-buffer (get-buffer-create "*helm async*"))
+          (erase-buffer)
+          (insert "Error: ")
+          (insert-file-contents helm-async-log-file)
+          (delete-file helm-async-log-file))
+        (funcall helm-async-message-function "Asynchronous %s of %s file(s) done"
+                 (car helm-async-operation) (cadr helm-async-operation)))))
 
 (defun helm-async-maybe-kill-ftp ()
   "Return a form to kill ftp process in child emacs."
@@ -186,9 +198,13 @@ ESC or `q' to not overwrite any of the remaining files,
     (async-start `(lambda ()
                     (require 'cl) (require 'dired-aux)
                     ,(async-inject-variables helm-async-env-variables-regexp)
-                    (let ((dired-recursive-copies (quote always)))
-                      (loop for (f . d) in (quote ,async-fn-list)
-                            do (funcall (quote ,file-creator) f d t)))
+                    (condition-case err
+                        (let ((dired-recursive-copies (quote always)))
+                          (loop for (f . d) in (quote ,async-fn-list)
+                                do (funcall (quote ,file-creator) f d t)))
+                      (file-error
+                       (with-temp-file ,helm-async-log-file
+                         (insert (format "%S" err)))))
                     ,(helm-async-maybe-kill-ftp))
                  callback)
     (cond
