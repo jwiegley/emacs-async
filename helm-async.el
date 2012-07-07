@@ -1,9 +1,11 @@
 ;;; helm-async.el --- Copy/move/delete asynchronously in dired/helm.
 
 ;; Copyright (C) 2012 John Wiegley
+;; Copyright (C) 2012 Thierry Volpiatto
 
-;; Author: John Wiegley <jwiegley@gmail.com>
-;; Created: 14 Jun 2012
+;; Authors: John Wiegley <jwiegley@gmail.com>
+;;          Thierry Volpiatto <thierry.volpiatto@gmail.com>
+
 ;; Version: 1.0
 ;; Keywords: dired async network
 ;; X-URL: https://github.com/jwiegley/helm-async
