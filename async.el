@@ -158,8 +158,8 @@ as follows:
 (defun async-ready (future)
   "Query a FUTURE to see if the ready is ready -- i.e., if no blocking
 would result from a call to `async-get' on that FUTURE."
-  (with-current-buffer (process-buffer future)
-    (and (memq (process-status future) '(exit signal))
+  (and (memq (process-status future) '(exit signal))
+       (with-current-buffer (process-buffer future)
          async-callback-value-set)))
 
 (defun async-wait (future)
@@ -171,8 +171,8 @@ would result from a call to `async-get' on that FUTURE."
   "Get the value from an asynchronously function when it is ready.
 FUTURE is returned by `async-start' or `async-start-process' when
 its FINISH-FUNC is nil."
+  (async-wait future)
   (with-current-buffer (process-buffer future)
-    (async-wait future)
     (async-handle-result #'identity async-callback-value (current-buffer))))
 
 (defun async-message-p (value)
