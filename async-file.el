@@ -59,12 +59,6 @@
   :type 'boolean
   :group 'async-file)
 
-(defvar async-file-queue nil
-  "Queue of pending asynchronous file operations.
-Each operation that succeeds will start the next member of the queue.  If an
-error occurs at any point, the rest of the queue is flushed.")
-(defvar async-file-queue-mutex nil)
-
 (defun* async-copy-file
     (file newname
           &optional ok-if-already-exists keep-time
