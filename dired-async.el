@@ -78,20 +78,21 @@
 
 (require 'dired-aux)
 (require 'async)
+(require 'async-file)
 
 (defgroup dired-async nil
   "Copy/move/delete asynchronously in dired"
   :group 'dired)
 
-(defcustom dired-async-use-native-commands nil
-  "If non-nil, use native cp/mv/rm commands for local-only files."
-  :type 'boolean
-  :group 'dired-async)
-
 (defface dired-async-in-process-face
   '((t (:background "yellow")))
   "Face used to show that an asynchronous operation is in progress."
   :group 'dired-async)
+
+(defvar dired-async-queue nil
+  "Queue of pending asynchronous file operations.
+Each operation that succeeds will start the next member of the queue.  If an
+error occurs at any point, the rest of the queue is flushed.")
 
 (defun dired-async-highlight-file (file)
   (save-excursion
@@ -137,46 +138,24 @@
                       `(lambda (&optional ignore)
                          (dired-after-file-create ,to ,actual-marker-char
                                                   ,overwrite))
-                    'ignore)))
+                    (lambda (&optional ignore)))))
     (if (and recursive
              (eq t (car attrs))
              (or (eq recursive 'always)
                  (yes-or-no-p (format "Recursive copies of %s? " from))))
         ;; This is a directory.
         (dired-async-wrap-call from callback
-          (if (and dired-async-use-native-commands
-                   (not (file-remote-p from))
-                   (not (file-remote-p to)))
-              (let ((args (list "-fR" from to)))
-                (if preserve-time
-                    (setq args (cons "-p" args)))
-                (unless ok-flag
-                  (setq args (cons "-n" args)))
-                (apply #'async-start-process "cp" (executable-find "cp")
-                       callback args))
-            (async-start (apply-partially #'copy-directory from to
-                                          preserve-time)
-                         callback)))
+          (async-copy-file from to ok-flag preserve-time
+                           :callback callback))
       ;; Not a directory.
       (or top (dired-handle-overwrite to))
       (condition-case err
           (if (stringp (car attrs))
               ;; It is a symlink
               (make-symbolic-link (car attrs) to ok-flag)
-            (if (and dired-async-use-native-commands
-                     (not (file-remote-p from))
-                     (not (file-remote-p to)))
-                (let ((args (list "-f" from to)))
-                  (if preserve-time
-                      (setq args (cons "-p" args)))
-                  (unless ok-flag
-                    (setq args (cons "-n" args)))
-                  (apply #'async-start-process "cp" (executable-find "cp")
-                         callback args))
-              (dired-async-wrap-call from callback
-                (async-start (apply-partially #'copy-file from to ok-flag
-                                              preserve-time)
-                             callback))))
+            (dired-async-wrap-call from callback
+              (async-copy-file from to ok-flag preserve-time
+                               :callback callback)))
         (file-date-error
          (push (dired-make-relative from)
                dired-create-files-failures)
@@ -198,7 +177,7 @@
 
                 (dired-after-file-create ,newname ,actual-marker-char
                                          ,overwrite))
-           'ignore)))
+           (lambda (&optional ignore)))))
     (if (and dired-async-use-native-commands
              (not (file-remote-p file))
              (not (file-remote-p newname)))
