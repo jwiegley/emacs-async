@@ -95,9 +95,18 @@ This allow to turn off async features provided to this package."
     (sit-for 3)
     (force-mode-line-update)))
 
+(defun helm-async-processes ()
+  "Get all emacs-async processes running."
+  (loop for p in (mapcar 'process-name (process-list))
+        when (string-match "emacs" p)
+        collect p))
+
 (defun helm-async-after-file-create ()
   "Callback function used for operation handled by `dired-create-file'."
-  (helm-async-mode -1)
+  (unless (helm-async-processes)
+    ;; Turn off mode-line notification
+    ;; only when last process end.
+    (helm-async-mode -1))
   (when helm-async-operation
     (if (file-exists-p helm-async-log-file)
         (progn
