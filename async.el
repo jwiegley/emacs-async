@@ -262,8 +262,9 @@ returns nil.  It can still be useful, however, as an argument to
     `(let* ((sexp ,start-func)
             (,procvar
              (async-start-process
-              "emacs" (expand-file-name invocation-name
-                                        invocation-directory)
+              "emacs" (file-truename
+                       (expand-file-name invocation-name
+                                         invocation-directory))
               ,finish-func
               "-Q" "-l" ,(funcall (symbol-function 'find-library-name)
                                   "async")
