@@ -145,7 +145,7 @@ error occurs at any point, the rest of the queue is flushed.")
                  (yes-or-no-p (format "Recursive copies of %s? " from))))
         ;; This is a directory.
         (dired-async-wrap-call from callback
-          (async-copy-file from to ok-flag preserve-time
+          (async-copy-file from to ok-flag preserve-time nil nil
                            :callback callback))
       ;; Not a directory.
       (or top (dired-handle-overwrite to))
@@ -154,7 +154,7 @@ error occurs at any point, the rest of the queue is flushed.")
               ;; It is a symlink
               (make-symbolic-link (car attrs) to ok-flag)
             (dired-async-wrap-call from callback
-              (async-copy-file from to ok-flag preserve-time
+              (async-copy-file from to ok-flag preserve-time nil nil
                                :callback callback)))
         (file-date-error
          (push (dired-make-relative from)
