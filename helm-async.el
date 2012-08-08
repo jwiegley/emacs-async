@@ -80,7 +80,9 @@ This allow to turn off async features provided to this package."
     "Notify mode-line that an async process run."
   :group 'helm-async
   :global t
-  :lighter " [Async job running]")
+  :lighter " [Async job running]"
+  (unless helm-async-mode
+    (let ((visible-bell t)) (ding))))
 
 (defun helm-async-mode-line-message (text &rest args)
   "Notify end of operation in `mode-line'."
