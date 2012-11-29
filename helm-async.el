@@ -221,7 +221,8 @@ ESC or `q' to not overwrite any of the remaining files,
                    (file-in-directory-p destname from)
                    (error "Cannot copy `%s' into its subdirectory `%s'"
                           from to)))
-            (if helm-async-be-async
+            (if (and dired-overwrite-confirmed
+                     helm-async-be-async)
                 (push (cons from to) async-fn-list)
                 (condition-case err
                     (progn
