@@ -221,9 +221,15 @@ ESC or `q' to not overwrite any of the remaining files,
                    (file-in-directory-p destname from)
                    (error "Cannot copy `%s' into its subdirectory `%s'"
                           from to)))
-            (if (and dired-overwrite-confirmed
-                     helm-async-be-async)
-                (push (cons from to) async-fn-list)
+            (if helm-async-be-async
+                (if overwrite
+                    (or (and dired-overwrite-confirmed
+                             (push (cons from to) async-fn-list))
+                        (progn
+                          (push (dired-make-relative from) failures)
+                          (dired-log "%s `%s' to `%s' failed"
+                                     operation from to)))
+                    (push (cons from to) async-fn-list))
                 (condition-case err
                     (progn
                       (funcall file-creator from to dired-overwrite-confirmed)
