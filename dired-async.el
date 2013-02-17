@@ -94,6 +94,9 @@
 Each operation that succeeds will start the next member of the queue.  If an
 error occurs at any point, the rest of the queue is flushed.")
 
+(defvar dired-async-use-native-commands nil
+  "If non-nil, use native commands like `rm' and `mv' for file operations. Otherwise use elisp.")
+
 (defun dired-async-highlight-file (file)
   (save-excursion
     (dired-goto-file file)
