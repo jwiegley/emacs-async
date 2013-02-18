@@ -50,7 +50,7 @@
   :group 'helm)
 
 (defcustom helm-async-env-variables-regexp
-  "\\`\\(tramp-default\\|ange-ftp\\)-.*"
+  "\\`\\(tramp-\\(default\\|connection\\|remote\\)\\|ange-ftp\\)-.*"
   "Variables matching this regexp will be loaded on Child Emacs."
   :type  'regexp
   :group 'helm-async)
