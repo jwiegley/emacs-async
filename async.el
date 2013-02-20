@@ -118,7 +118,8 @@ as follows:
           (set (make-local-variable 'async-callback-value-set) t))))))
 
 (defun async--receive-sexp (&optional stream)
-  (let ((sexp (base64-decode-string (read stream))))
+  (let ((sexp (decode-coding-string (base64-decode-string
+                                     (read stream)) 'utf-8-unix)))
     (if async-debug
         (message "Received sexp {{{%s}}}" (pp-to-string sexp)))
     (setq sexp (read sexp))
@@ -129,6 +130,7 @@ as follows:
 (defun async--insert-sexp (sexp)
   (prin1 sexp (current-buffer))
   ;; Just in case the string we're sending might contain EOF
+  (encode-coding-region (point-min) (point-max) 'utf-8-unix)
   (base64-encode-region (point-min) (point-max) t)
   (goto-char (point-min)) (insert ?\")
   (goto-char (point-max)) (insert ?\" ?\n))
