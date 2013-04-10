@@ -1,6 +1,6 @@
 ;;; dired-async --- Copy/move/delete asynchronously in dired
 
-;; Copyright (C) 2012 John Wiegley
+;; Copyright (C) 2012~2013 John Wiegley
 
 ;; Author: John Wiegley <jwiegley@gmail.com>
 ;; Created: 14 Jun 2012

@@ -1,6 +1,6 @@
 ;;; async --- Asynchronous processing in Emacs
 
-;; Copyright (C) 2012 John Wiegley
+;; Copyright (C) 2012~2013 John Wiegley
 
 ;; Author: John Wiegley <jwiegley@gmail.com>
 ;; Created: 18 Jun 2012
