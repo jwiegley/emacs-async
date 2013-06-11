@@ -175,8 +175,8 @@ old file was marked."
   (setq helm-async-operation nil)
   (let (dired-create-files-failures failures async-fn-list
         skipped (success-count 0) (total (length fn-list))
-        (callback `(lambda (&optional ignore)
-                     (helm-async-after-file-create))))
+        (callback '(lambda (&optional ignore)
+                    (helm-async-after-file-create))))
     (let (to overwrite-query
              overwrite-backup-query)   ; for dired-handle-overwrite
       (dolist (from fn-list)
