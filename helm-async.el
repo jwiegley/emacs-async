@@ -74,13 +74,20 @@ This allow to turn off async features provided to this package."
 
 (defface helm-async-message
     '((t (:foreground "yellow")))
-  "Face used for mode-line message.")
+  "Face used for mode-line message."
+  :group 'helm-async)
+
+(defface helm-async-mode-message
+    '((t (:background "Firebrick1")))
+  "Face used for `helm-async-mode' lighter."
+  :group 'helm-async)
 
 (define-minor-mode helm-async-mode
     "Notify mode-line that an async process run."
   :group 'helm-async
   :global t
-  :lighter " [Async job running]"
+  :lighter (:eval (propertize " [Async job running]"
+                              'face 'helm-async-mode-message))
   (unless helm-async-mode
     (let ((visible-bell t)) (ding))))
 
@@ -125,8 +132,10 @@ This allow to turn off async features provided to this package."
           (insert "Error: ")
           (insert-file-contents helm-async-log-file)
           (delete-file helm-async-log-file))
-        (funcall helm-async-message-function "Asynchronous %s of %s file(s) done"
-                 (car helm-async-operation) (cadr helm-async-operation)))))
+        (run-with-timer
+         0.1 nil
+         helm-async-message-function "Asynchronous %s of %s file(s) done"
+         (car helm-async-operation) (cadr helm-async-operation)))))
 
 (defun helm-async-maybe-kill-ftp ()
   "Return a form to kill ftp process in child emacs."
