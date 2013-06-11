@@ -149,7 +149,7 @@ This allow to turn off async features provided to this package."
        (when buf (kill-buffer buf))))))
 
 (defun dired-create-files (file-creator operation fn-list name-constructor
-                                        &optional marker-char)
+                           &optional marker-char)
   "Create one or more new files from a list of existing files FN-LIST.
 This function also handles querying the user, updating Dired
 buffers, and displaying a success or failure message.
@@ -178,7 +178,7 @@ old file was marked."
         (callback `(lambda (&optional ignore)
                      (helm-async-after-file-create))))
     (let (to overwrite-query
-             overwrite-backup-query)	; for dired-handle-overwrite
+             overwrite-backup-query)   ; for dired-handle-overwrite
       (dolist (from fn-list)
         (setq to (funcall name-constructor from))
         (if (equal to from)
