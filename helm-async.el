@@ -189,6 +189,8 @@ old file was marked."
         (if (not to)
             (setq skipped (cons (dired-make-relative from) skipped))
           (let* ((overwrite (file-exists-p to))
+                 (attrs (file-attributes from))
+                 (from-dir-p (eq (car attrs) t))
                  (dired-overwrite-confirmed ; for dired-handle-overwrite
                   (and overwrite
                        (let ((help-form '(format "\
@@ -219,7 +221,7 @@ ESC or `q' to not overwrite any of the remaining files,
             ;; need such a construction of the target directory,
             ;; so modify the destination TO to "~/test/" instead of "~/test/foo/".
             (let ((destname (file-name-directory to)))
-              (when (and (file-directory-p from)
+              (when (and from-dir-p
                          (file-directory-p to)
                          (eq file-creator 'dired-copy-file))
                 (setq to destname))
@@ -230,7 +232,12 @@ ESC or `q' to not overwrite any of the remaining files,
                    (file-in-directory-p destname from)
                    (error "Cannot copy `%s' into its subdirectory `%s'"
                           from to)))
-            (if helm-async-be-async
+            (if (and helm-async-be-async
+                     (or (not from-dir-p)
+                         (and from-dir-p
+                              (or (eq dired-recursive-copies 'always)
+                                  (yes-or-no-p
+                                   (format "Recursive copies of %s? " from))))))
                 (if overwrite
                     (or (and dired-overwrite-confirmed
                              (push (cons from to) async-fn-list))
