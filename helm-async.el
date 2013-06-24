@@ -27,13 +27,20 @@
 
 ;;; Commentary:
 
-;; The function, which must be loaded *after* dired-aux.el, performs copies,
+;; This file provide a redefinition of `dired-create-file' function,
+;; which must be loaded *after* dired-aux.el, performs copies,
 ;; moves and all what is handled by `dired-create-file' in the background
 ;; using a slave Emacs process, by means of the async.el module.
 ;; To use it, put this in your .emacs:
 ;;
 ;;   (eval-after-load "dired-aux"
 ;;     '(require 'helm-async))
+;;
+;; NOTE: This file is incompatible with dired-async.el and async-file.el,
+;;       so be sure to NOT LOAD these files.
+;;
+;; It allows doing all these async operations from helm, but you can also
+;; use it without installing helm and use it only from dired.
 
 ;;; Code:
 
