@@ -260,8 +260,11 @@ passed to FINISH-FUNC).  Call `async-get' on such a future always
 returns nil.  It can still be useful, however, as an argument to
 `async-ready' or `async-wait'."
   (require 'find-func)
-  (let ((procvar (make-symbol "proc")))
-    `(let* ((sexp ,start-func)
+  (let ((procvar (make-symbol "proc"))
+        ;; Avoid accidental lexical closures by evaluating START-FUNC
+        ;; in an empty lexical environment.
+        (start-func (eval start-func t)))
+    `(let* ((sexp #',start-func)
             (,procvar
              (async-start-process
               "emacs" (file-truename
