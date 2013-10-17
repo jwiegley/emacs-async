@@ -130,6 +130,15 @@
    (lambda (result)
      (message "Async process done: %s" result))))
 
+(defun async-test-7 ()
+  (interactive)
+  (message "Starting async-test-7...")
+  (eval
+   '(mapcar #'async-get
+            (cl-loop repeat 2 collect
+                     (async-start (lambda () t))))
+   t))
+
 (defsubst async-file-contents (file)
   "Return the contents of FILE, as a string."
   (with-temp-buffer
