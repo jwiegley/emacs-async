@@ -260,10 +260,21 @@ passed to FINISH-FUNC).  Call `async-get' on such a future always
 returns nil.  It can still be useful, however, as an argument to
 `async-ready' or `async-wait'."
   (require 'find-func)
-  (let ((procvar (make-symbol "proc"))
-        ;; Avoid accidental lexical closures by evaluating START-FUNC
-        ;; in an empty lexical environment.
-        (start-func (eval start-func t)))
+  (let* ((procvar (make-symbol "proc"))
+         ;; Evaluate START-FUNC if it isn't aready a function.
+         (start-func
+          (if (functionp start-func)
+              start-func
+            (eval start-func)))
+         (start-func
+          (if (eq (car start-func) 'lambda)
+              (eval start-func t)
+            start-func)))
+    ;; If START-FUNC is a lambda, prevent it from creating a lexical
+    ;; closure by evaluating it in an empty lexical environment.
+    (when (eq (car start-func) 'lambda)
+      (setq start-func
+            (eval start-func t)))
     `(let* ((sexp #',start-func)
             (,procvar
              (async-start-process
