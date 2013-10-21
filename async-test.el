@@ -131,26 +131,6 @@
    (lambda (result)
      (message "Async process done: %s" result))))
 
-(defun async-test-7 ()
-  (interactive)
-  (message "Starting async-test-7...")
-  (eval
-   '(progn
-      (print
-       (mapcar #'async-get
-               (cl-loop repeat 2 collect
-                        (async-start (lambda () t)))))
-      (print
-       (mapcar #'async-get
-               (cl-loop repeat 2 collect
-                        (async-start '(lambda () t)))))
-      (print
-       (mapcar #'async-get
-               (cl-loop repeat 2 collect
-                        (async-start `(lambda () ,(* 150 2)))))))
-   t)
-  (message "Finished async-test-7 successfully."))
-
 (defsubst async-file-contents (file)
   "Return the contents of FILE, as a string."
   (with-temp-buffer
@@ -272,6 +252,41 @@ Return the name of the directory."
       (if (file-directory-p temp-dir)  (delete-directory temp-dir t))
       (if (file-directory-p temp-dir2) (delete-directory temp-dir2 t)))))
 
+(defun async-do-lexbind-test ()
+  ;; The `cl-loop' macro creates some lexical variables, and in this
+  ;; case one of those variables (the one that collects the result)
+  ;; gets set to a list of process objects, which are unprintable. If
+  ;; `lexical-binding' is non-nil, this unprintable value is
+  ;; incorporated into the closures created by `lambda' within the
+  ;; loop. Closure prevention avoids the error from this unprintable
+  ;; lexical value in these examples.
+  (eval
+   '(progn
+       (mapcar #'async-get
+               (cl-loop repeat 2 collect
+                        (async-start (lambda () t))))
+       (mapcar #'async-get
+               (cl-loop repeat 2 collect
+                        (async-start '(lambda () t))))
+       (mapcar #'async-get
+               (cl-loop repeat 2 collect
+                        (async-start #'(lambda () t))))
+       (mapcar #'async-get
+               (cl-loop repeat 2 collect
+                        (async-start `(lambda () ,(* 150 2))))))
+   t)
+  ;; However closure prevention also (obviously) prevents creation of
+  ;; lexical closures, leading to an error in this case.
+  (should
+   (eq 6
+       (eval
+        '(let ((x 1)
+               (y 2)
+               (z 3))
+           (async-sandbox (lambda () (+ x y z))))
+        t)
+       )))
+
 (ert-deftest async-copy-directory-lisp-sync-1 ()
   (async-do-copy-directory-test t nil nil :synchronously t))
 (ert-deftest async-copy-directory-lisp-sync-2 ()
@@ -298,6 +313,9 @@ Return the name of the directory."
   (async-do-copy-directory-test t nil t :use-native-commands t))
 (ert-deftest async-copy-directory-native-4 ()
   (async-do-copy-directory-test t t t :use-native-commands t))
+
+(ert-deftest async-lexbind-test ()
+  (async-do-lexbind-test))
 
 (provide 'async-test)
 
