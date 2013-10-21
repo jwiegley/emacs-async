@@ -29,6 +29,7 @@
 
 ;;; Code:
 
+(add-to-list 'load-path (file-name-directory (or load-file-name (buffer-file-name))))
 (require 'async)
 (require 'async-file)
 
@@ -129,6 +130,26 @@
    ;; What to do when it finishes
    (lambda (result)
      (message "Async process done: %s" result))))
+
+(defun async-test-7 ()
+  (interactive)
+  (message "Starting async-test-7...")
+  (eval
+   '(progn
+      (print
+       (mapcar #'async-get
+               (cl-loop repeat 2 collect
+                        (async-start (lambda () t)))))
+      (print
+       (mapcar #'async-get
+               (cl-loop repeat 2 collect
+                        (async-start '(lambda () t)))))
+      (print
+       (mapcar #'async-get
+               (cl-loop repeat 2 collect
+                        (async-start `(lambda () ,(* 150 2)))))))
+   t)
+  (message "Finished async-test-7 successfully."))
 
 (defsubst async-file-contents (file)
   "Return the contents of FILE, as a string."
