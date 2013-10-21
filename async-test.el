@@ -252,6 +252,36 @@ Return the name of the directory."
       (if (file-directory-p temp-dir)  (delete-directory temp-dir t))
       (if (file-directory-p temp-dir2) (delete-directory temp-dir2 t)))))
 
+(defun async-do-start-func-value-type-test ()
+  ;; Variable
+  (set 'myfunc-var (lambda () t))
+  ;; Function symbol
+  (fset 'myfunc-fsym myfunc-var)
+  ;; Defun
+  (defun myfunc-defun () t)
+
+  (should-error (error "ERROR"))
+
+  (should (eq t (eval '(async-sandbox myfunc-var))))
+  (should-error (eval '(async-sandbox 'myfunc-var)))
+  (should-error (eval '(async-sandbox #'myfunc-var)))
+
+  (should-error (eval '(async-sandbox myfunc-fsym)))
+  (should (eq t (eval '(async-sandbox 'myfunc-fsym))))
+  (should (eq t (eval '(async-sandbox #'myfunc-fsym))))
+
+  (should-error (eval '(async-sandbox myfunc-defun)))
+  (should (eq t (eval '(async-sandbox 'myfunc-defun))))
+  (should (eq t (eval '(async-sandbox #'myfunc-defun))))
+
+  (should (eq t (eval '(async-sandbox (lambda () t)))))
+  (should (eq t (eval '(async-sandbox '(lambda () t)))))
+  (should (eq t (eval '(async-sandbox #'(lambda () t)))))
+
+  (should-error (eval '(async-sandbox (closure (t) () t))))
+  (should (eq t (eval '(async-sandbox '(closure (t) () t)))))
+  (should (eq t (eval '(async-sandbox #'(closure (t) () t))))))
+
 (defun async-do-lexbind-test ()
   ;; The `cl-loop' macro creates some lexical variables, and in this
   ;; case one of those variables (the one that collects the result)
@@ -313,6 +343,9 @@ Return the name of the directory."
   (async-do-copy-directory-test t nil t :use-native-commands t))
 (ert-deftest async-copy-directory-native-4 ()
   (async-do-copy-directory-test t t t :use-native-commands t))
+
+(ert-deftest async-start-func-value-type-test ()
+  (async-do-start-func-value-type-test))
 
 (ert-deftest async-lexbind-test ()
   (async-do-lexbind-test))
