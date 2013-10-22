@@ -287,9 +287,11 @@ Return the name of the directory."
   ;; case one of those variables (the one that collects the result)
   ;; gets set to a list of process objects, which are unprintable. If
   ;; `lexical-binding' is non-nil, this unprintable value is
-  ;; incorporated into the closures created by `lambda' within the
-  ;; loop. Closure prevention avoids the error from this unprintable
-  ;; lexical value in these examples.
+  ;; incorporated into the closures created by `lambda' within the lexical
+  ;; scope of the loop, causing an error when another process tried to
+  ;; read in the printed value. `async--sanitize-closure' should
+  ;; prevent this by deleting the unprintable variable from the
+  ;; closure before printing it.
   (eval
    '(progn
        (mapcar #'async-get
@@ -305,8 +307,8 @@ Return the name of the directory."
                (cl-loop repeat 2 collect
                         (async-start `(lambda () ,(* 150 2))))))
    t)
-  ;; However closure prevention also (obviously) prevents creation of
-  ;; lexical closures, leading to an error in this case.
+  ;; The following lexical closure should work fine, since x, y, and z
+  ;; all have printable values.
   (should
    (eq 6
        (eval
