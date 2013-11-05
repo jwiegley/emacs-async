@@ -171,7 +171,11 @@ as follows:
 (defsubst async--get-function (func)
   "Get the function definition of FUNC, whatever it is.
 
-FUNC can be a variable name, "
+FUNC can be a variable name, a function definition, or an
+expression that evaluates to a function.
+
+This exists to get around the fact that closures are not
+self-quoting, so calling `eval' on them results in an error."
   (indirect-function
    (cond
     ;; Quoted form => Extract value without evaluating since `(eval
