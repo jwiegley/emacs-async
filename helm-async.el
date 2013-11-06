@@ -125,7 +125,7 @@ This allow to turn off async features provided to this package."
     (unless (> (length processes) 1)
       (helm-async-mode -1))))
 
-(defun helm-async-after-file-create (len-flist)
+(defun helm-async-after-file-create ()
   "Callback function used for operation handled by `dired-create-file'."
   (unless (helm-async-processes)
     ;; Turn off mode-line notification
@@ -141,8 +141,8 @@ This allow to turn off async features provided to this package."
           (delete-file helm-async-log-file))
         (run-with-timer
          0.1 nil
-         helm-async-message-function "Asynchronous %s of %s file(s) on %s file(s) done"
-         (car helm-async-operation) (cadr helm-async-operation) len-flist))))
+         helm-async-message-function "Asynchronous %s of %s file(s) done"
+         (car helm-async-operation) (cadr helm-async-operation)))))
 
 (defun helm-async-maybe-kill-ftp ()
   "Return a form to kill ftp process in child emacs."
@@ -182,8 +182,8 @@ old file was marked."
   (setq helm-async-operation nil)
   (let (dired-create-files-failures failures async-fn-list
         skipped (success-count 0) (total (length fn-list))
-        (callback `(lambda (&optional ignore)
-                     (helm-async-after-file-create ,(length fn-list)))))
+        (callback '(lambda (&optional ignore)
+                    (helm-async-after-file-create))))
     (let (to overwrite-query
              overwrite-backup-query)   ; for dired-handle-overwrite
       (dolist (from fn-list)
@@ -263,7 +263,19 @@ ESC or `q' to not overwrite any of the remaining files,
                            failures)
                      (dired-log "%s `%s' to `%s' failed:\n%s\n"
                                 operation from to err)))))))))
-    ;; Handle error happening in host emacs.
+    (when (and async-fn-list helm-async-be-async)
+      (async-start `(lambda ()
+                      (require 'cl) (require 'dired-aux)
+                      ,(async-inject-variables helm-async-env-variables-regexp)
+                      (condition-case err
+                          (let ((dired-recursive-copies (quote always)))
+                            (loop for (f . d) in (quote ,async-fn-list)
+                                  do (funcall (quote ,file-creator) f d t)))
+                        (file-error
+                         (with-temp-file ,helm-async-log-file
+                           (insert (format "%S" err)))))
+                      ,(helm-async-maybe-kill-ftp))
+                   callback))
     (cond
      (dired-create-files-failures
       (setq failures (nconc failures dired-create-files-failures))
@@ -285,26 +297,14 @@ ESC or `q' to not overwrite any of the remaining files,
                 operation (length skipped) total
                 (dired-plural-s total))
        skipped))
-     (t (message "%s: %s file%s"
-                   operation success-count (dired-plural-s success-count))))
-    ;; Start async process.
-    (when (and async-fn-list helm-async-be-async)
-      (async-start `(lambda ()
-                      (require 'cl) (require 'dired-aux)
-                      ,(async-inject-variables helm-async-env-variables-regexp)
-                      (condition-case err
-                          (let ((dired-recursive-copies (quote always)))
-                            (loop for (f . d) in (quote ,async-fn-list)
-                                  do (funcall (quote ,file-creator) f d t)))
-                        (file-error
-                         (with-temp-file ,helm-async-log-file
-                           (insert (format "%S" err)))))
-                      ,(helm-async-maybe-kill-ftp))
-                   callback)
-      ;; Run mode-line notifications while process running.
-      (helm-async-mode 1)
-      (setq helm-async-operation (list operation (length async-fn-list)))
-      (message "%s proceeding asynchronously..." operation)))
+     (t
+      (if (and async-fn-list helm-async-be-async)
+          (progn
+            (helm-async-mode 1)
+            (setq helm-async-operation (list operation (length fn-list)))
+            (message "%s proceeding asynchronously..." operation))
+          (message "%s: %s file%s"
+                   operation success-count (dired-plural-s success-count))))))
   (unless helm-async-be-async
     (dired-move-to-filename)))
 
