@@ -29,7 +29,6 @@
 
 ;;; Code:
 
-(add-to-list 'load-path (file-name-directory (or load-file-name (buffer-file-name))))
 (require 'async)
 (require 'async-file)
 
@@ -252,73 +251,6 @@ Return the name of the directory."
       (if (file-directory-p temp-dir)  (delete-directory temp-dir t))
       (if (file-directory-p temp-dir2) (delete-directory temp-dir2 t)))))
 
-(defun async-do-start-func-value-type-test ()
-  ;; Variable
-  (set 'myfunc-var (lambda () t))
-  ;; Function symbol
-  (fset 'myfunc-fsym myfunc-var)
-  ;; Defun
-  (defun myfunc-defun () t)
-
-  (should-error (error "ERROR"))
-
-  (should (eq t (eval '(async-sandbox myfunc-var))))
-  (should-error (eval '(async-sandbox 'myfunc-var)))
-  (should-error (eval '(async-sandbox #'myfunc-var)))
-
-  (should-error (eval '(async-sandbox myfunc-fsym)))
-  (should (eq t (eval '(async-sandbox 'myfunc-fsym))))
-  (should (eq t (eval '(async-sandbox #'myfunc-fsym))))
-
-  (should-error (eval '(async-sandbox myfunc-defun)))
-  (should (eq t (eval '(async-sandbox 'myfunc-defun))))
-  (should (eq t (eval '(async-sandbox #'myfunc-defun))))
-
-  (should (eq t (eval '(async-sandbox (lambda () t)))))
-  (should (eq t (eval '(async-sandbox '(lambda () t)))))
-  (should (eq t (eval '(async-sandbox #'(lambda () t)))))
-
-  (should-error (eval '(async-sandbox (closure (t) () t))))
-  (should (eq t (eval '(async-sandbox '(closure (t) () t)))))
-  (should (eq t (eval '(async-sandbox #'(closure (t) () t))))))
-
-(defun async-do-lexbind-test ()
-  ;; The `cl-loop' macro creates some lexical variables, and in this
-  ;; case one of those variables (the one that collects the result)
-  ;; gets set to a list of process objects, which are unprintable. If
-  ;; `lexical-binding' is non-nil, this unprintable value is
-  ;; incorporated into the closures created by `lambda' within the lexical
-  ;; scope of the loop, causing an error when another process tried to
-  ;; read in the printed value. `async--sanitize-closure' should
-  ;; prevent this by deleting the unprintable variable from the
-  ;; closure before printing it.
-  (eval
-   '(progn
-       (mapcar #'async-get
-               (cl-loop repeat 2 collect
-                        (async-start (lambda () t))))
-       (mapcar #'async-get
-               (cl-loop repeat 2 collect
-                        (async-start '(lambda () t))))
-       (mapcar #'async-get
-               (cl-loop repeat 2 collect
-                        (async-start #'(lambda () t))))
-       (mapcar #'async-get
-               (cl-loop repeat 2 collect
-                        (async-start `(lambda () ,(* 150 2))))))
-   t)
-  ;; The following lexical closure should work fine, since x, y, and z
-  ;; all have printable values.
-  (should
-   (eq 6
-       (eval
-        '(let ((x 1)
-               (y 2)
-               (z 3))
-           (async-sandbox (lambda () (+ x y z))))
-        t)
-       )))
-
 (ert-deftest async-copy-directory-lisp-sync-1 ()
   (async-do-copy-directory-test t nil nil :synchronously t))
 (ert-deftest async-copy-directory-lisp-sync-2 ()
@@ -345,12 +277,6 @@ Return the name of the directory."
   (async-do-copy-directory-test t nil t :use-native-commands t))
 (ert-deftest async-copy-directory-native-4 ()
   (async-do-copy-directory-test t t t :use-native-commands t))
-
-(ert-deftest async-start-func-value-type-test ()
-  (async-do-start-func-value-type-test))
-
-(ert-deftest async-lexbind-test ()
-  (async-do-lexbind-test))
 
 (provide 'async-test)
 

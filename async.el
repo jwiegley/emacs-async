@@ -142,51 +142,6 @@ as follows:
     (async--insert-sexp sexp)
     (process-send-region process (point-min) (point-max))))
 
-(defsubst async--value-printable-p (value)
-  "Return non-nil if VALUE can be round-tripped to a string prepresentation."
-  (condition-case nil
-      (let* ((value-string (prin1-to-string value))
-             (value-from-string (car (read-from-string value-string))))
-        (equal value value-from-string))
-    (error nil)))
-
-(defun async--sanitize-closure (func)
-  "If FUNC is a closure, delete unprintable lexicals from it."
-  (when (eq (car-safe func) 'closure)
-    (setf (cadr func)
-          (or (loop for obj in (cadr func)
-                    if (or (not (consp obj))
-                           (async--value-printable-p (cdr obj)))
-                    collect obj
-                    else do
-                    (when async-debug
-                      (message "Sanitized var from closure: %s=%S"
-                               (car obj) (cdr obj))))
-              ;; A closure with no lexicals generally has this value
-              ;; as its cadr, so we'll use that if everything gets
-              ;; filtered out.
-              '(t))))
-  func)
-
-(defsubst async--get-function (func)
-  "Get the function definition of FUNC, whatever it is.
-
-FUNC can be a variable name, a function definition, or an
-expression that evaluates to a function.
-
-This exists to get around the fact that closures are not
-self-quoting, so calling `eval' on them results in an error."
-  (indirect-function
-   (cond
-    ;; Quoted form => Extract value without evaluating since `(eval
-    ;; (quote (closure ...)))' is an error.
-    ((memq (car-safe func) '(quote function))
-     (cadr func))
-    ;; Anything else => eval it
-    ;; (e.g. variable or function call)
-    (t
-     (eval func)))))
-
 (defun async-batch-invoke ()
   "Called from the child Emacs process' command-line."
   (setq async-in-child-emacs t
@@ -305,14 +260,8 @@ passed to FINISH-FUNC).  Call `async-get' on such a future always
 returns nil.  It can still be useful, however, as an argument to
 `async-ready' or `async-wait'."
   (require 'find-func)
-  (let* ((procvar (make-symbol "proc"))
-         ;; Evaluate START-FUNC and resolve it to an actual function
-         ;; definition.
-         (start-func
-          (async--get-function start-func)))
-    (unless (functionp start-func)
-      (error "Start-func is not a function: %S" start-func))
-    `(let* ((sexp (async--sanitize-closure #',start-func))
+  (let ((procvar (make-symbol "proc")))
+    `(let* ((sexp ,start-func)
             (,procvar
              (async-start-process
               "emacs" (file-truename
