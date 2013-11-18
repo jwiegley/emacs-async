@@ -268,8 +268,7 @@ returns nil.  It can still be useful, however, as an argument to
                        (expand-file-name invocation-name
                                          invocation-directory))
               ,finish-func
-              "-Q" "-l" ,(funcall (symbol-function 'find-library-name)
-                                  "async")
+              "-Q" "-l" ,(symbol-file 'async-batch-invoke 'defun)
               "-batch" "-f" "async-batch-invoke"
               (if async-send-over-pipe
                   "<none>"
