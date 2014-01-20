@@ -1,4 +1,4 @@
-;;; helm-async.el --- Copy/move/delete asynchronously in dired/helm.
+;;; dired-async.el --- Copy/move/delete asynchronously in dired.
 
 ;; Copyright (C) 2012~2013 John Wiegley
 ;; Copyright (C) 2012~2013 Thierry Volpiatto
@@ -8,7 +8,7 @@
 
 ;; Version: 1.0
 ;; Keywords: dired async network
-;; X-URL: https://github.com/jwiegley/helm-async
+;; X-URL: https://github.com/jwiegley/dired-async
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -48,46 +48,46 @@
   (defvar async-callback))
 (defvar dired-async-operation nil)
 
-(defgroup helm-async nil
-  "Copy rename files asynchronously from helm or dired."
-  :group 'helm)
+(defgroup dired-async nil
+  "Copy rename files asynchronously from dired."
+  :group 'dired)
 
 (defcustom dired-async-env-variables-regexp
   "\\`\\(tramp-\\(default\\|connection\\|remote\\)\\|ange-ftp\\)-.*"
   "Variables matching this regexp will be loaded on Child Emacs."
   :type  'regexp
-  :group 'helm-async)
+  :group 'dired-async)
 
 (defcustom dired-async-message-function 'dired-async-mode-line-message
   "Function to use to notify result when operation finish.
 Should take same args as `message'."
-  :group 'helm-async
+  :group 'dired-async
   :type  'function)
 
-(defcustom dired-async-log-file "/tmp/helm-async.log"
+(defcustom dired-async-log-file "/tmp/dired-async.log"
   "File use to communicate errors from Child Emacs to host Emacs."
-  :group 'helm-async
+  :group 'dired-async
   :type 'string)
 
 (defcustom dired-async-be-async t
   "When non--nil make `dired-create-file' async.
 This allow to turn off async features provided to this package."
-  :group 'helm-async
+  :group 'dired-async
   :type  'boolean)
 
 (defface dired-async-message
     '((t (:foreground "yellow")))
   "Face used for mode-line message."
-  :group 'helm-async)
+  :group 'dired-async)
 
 (defface dired-async-mode-message
     '((t (:background "Firebrick1")))
   "Face used for `dired-async-mode' lighter."
-  :group 'helm-async)
+  :group 'dired-async)
 
 (define-minor-mode dired-async-mode
     "Notify mode-line that an async process run."
-  :group 'helm-async
+  :group 'dired-async
   :global t
   :lighter (:eval (propertize " [Async job running]"
                               'face 'dired-async-mode-message))
@@ -130,7 +130,7 @@ This allow to turn off async features provided to this package."
   (when dired-async-operation
     (if (file-exists-p dired-async-log-file)
         (progn
-          (pop-to-buffer (get-buffer-create "*helm async*"))
+          (pop-to-buffer (get-buffer-create "*dired async*"))
           (erase-buffer)
           (insert "Error: ")
           (insert-file-contents dired-async-log-file)
@@ -305,6 +305,6 @@ ESC or `q' to not overwrite any of the remaining files,
     (dired-move-to-filename)))
 
 
-(provide 'helm-async)
+(provide 'dired-async)
 
-;;; helm-async.el ends here
+;;; dired-async.el ends here
