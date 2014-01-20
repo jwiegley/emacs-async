@@ -34,17 +34,13 @@
 ;; To use it, put this in your .emacs:
 ;;
 ;;   (eval-after-load "dired-aux"
-;;     '(require 'helm-async))
+;;     '(require 'dired-async))
 ;;
-;; NOTE: This file is incompatible with dired-async.el and async-file.el,
-;;       so be sure to NOT LOAD these files.
 ;;
-;; It allows doing all these async operations from helm, but you can also
-;; use it without installing helm and use it only from dired.
 
 ;;; Code:
 
-(eval-when-compile (require 'cl)) ; for declare
+(require 'cl-lib)
 (require 'dired-aux)
 (require 'async)
 
@@ -112,10 +108,10 @@ This allow to turn off async features provided to this package."
     (force-mode-line-update)))
 
 (defun dired-async-processes ()
-  (loop for p in (process-list)
-        when (loop for c in (process-command p) thereis
-                   (string= "async-batch-invoke" c))
-        collect p))
+  (cl-loop for p in (process-list)
+           when (cl-loop for c in (process-command p) thereis
+                         (string= "async-batch-invoke" c))
+           collect p))
 
 (defun dired-async-kill-process ()
   (interactive)
@@ -148,11 +144,11 @@ This allow to turn off async features provided to this package."
   "Return a form to kill ftp process in child emacs."
   (quote
    (progn
-     (require 'cl)
-     (let ((buf (loop for b in (buffer-list)
-                      thereis (and (string-match
-                                    "\\`\\*ftp.*"
-                                    (buffer-name b)) b))))
+     (require 'cl-lib)
+     (let ((buf (cl-loop for b in (buffer-list)
+                         thereis (and (string-match
+                                       "\\`\\*ftp.*"
+                                       (buffer-name b)) b))))
        (when buf (kill-buffer buf))))))
 
 (defun dired-create-files (file-creator operation fn-list name-constructor
@@ -290,12 +286,12 @@ ESC or `q' to not overwrite any of the remaining files,
     ;; Start async process.
     (when (and async-fn-list dired-async-be-async)
       (async-start `(lambda ()
-                      (require 'cl) (require 'dired-aux)
+                      (require 'cl-lib) (require 'dired-aux)
                       ,(async-inject-variables dired-async-env-variables-regexp)
                       (condition-case err
                           (let ((dired-recursive-copies (quote always)))
-                            (loop for (f . d) in (quote ,async-fn-list)
-                                  do (funcall (quote ,file-creator) f d t)))
+                            (cl-loop for (f . d) in (quote ,async-fn-list)
+                                     do (funcall (quote ,file-creator) f d t)))
                         (file-error
                          (with-temp-file ,dired-async-log-file
                            (insert (format "%S" err)))))
