@@ -1,7 +1,27 @@
 # emacs-async
 
-async.el is a module for doing asynchronous processing in Emacs.  The
-interface is intended to be very easy to use:
+async.el is a module for doing asynchronous processing in Emacs.
+
+# Install
+
+Add to your .emacs.el:
+
+     (when (tv-require 'dired-aux)
+       (require 'dired-async))
+
+This will allow you to run  asynchronously
+the dired commands for copying, renaming and symlinking.
+If you are a [helm](https://github.com/emacs-helm/helm) user, this will allow you
+to copy, rename etc... asynchronously from [helm](https://github.com/emacs-helm/helm).
+Note that with [helm](https://github.com/emacs-helm/helm)
+you can disable this by running the copy, rename etc... commands with a prefix argument.
+
+If you don't want to make dired/helm asynchronous, you can either
+disable this with `dired-async-be-async` or just load `async.el`.
+
+# Usage
+
+The interface is intended to be very easy to use:
 
 ## async-start
 
