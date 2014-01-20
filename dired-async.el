@@ -1,7 +1,7 @@
 ;;; dired-async.el --- Copy/move/delete asynchronously in dired.
 
-;; Copyright (C) 2012~2013 John Wiegley
-;; Copyright (C) 2012~2013 Thierry Volpiatto
+;; Copyright (C) 2012~2014 John Wiegley
+;; Copyright (C) 2012~2014 Thierry Volpiatto
 
 ;; Authors: John Wiegley <jwiegley@gmail.com>
 ;;          Thierry Volpiatto <thierry.volpiatto@gmail.com>

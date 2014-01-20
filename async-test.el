@@ -1,6 +1,6 @@
 ;;; async-test --- async.el-related tests
 
-;; Copyright (C) 2012 John Wiegley
+;; Copyright (C) 2012~2014 John Wiegley
 
 ;; Author: John Wiegley <jwiegley@gmail.com>
 ;; Created: 10 Jul 2012
