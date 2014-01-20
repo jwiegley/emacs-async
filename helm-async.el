@@ -50,55 +50,55 @@
 
 (eval-when-compile
   (defvar async-callback))
-(defvar helm-async-operation nil)
+(defvar dired-async-operation nil)
 
 (defgroup helm-async nil
   "Copy rename files asynchronously from helm or dired."
   :group 'helm)
 
-(defcustom helm-async-env-variables-regexp
+(defcustom dired-async-env-variables-regexp
   "\\`\\(tramp-\\(default\\|connection\\|remote\\)\\|ange-ftp\\)-.*"
   "Variables matching this regexp will be loaded on Child Emacs."
   :type  'regexp
   :group 'helm-async)
 
-(defcustom helm-async-message-function 'helm-async-mode-line-message
+(defcustom dired-async-message-function 'dired-async-mode-line-message
   "Function to use to notify result when operation finish.
 Should take same args as `message'."
   :group 'helm-async
   :type  'function)
 
-(defcustom helm-async-log-file "/tmp/helm-async.log"
+(defcustom dired-async-log-file "/tmp/helm-async.log"
   "File use to communicate errors from Child Emacs to host Emacs."
   :group 'helm-async
   :type 'string)
 
-(defcustom helm-async-be-async t
+(defcustom dired-async-be-async t
   "When non--nil make `dired-create-file' async.
 This allow to turn off async features provided to this package."
   :group 'helm-async
   :type  'boolean)
 
-(defface helm-async-message
+(defface dired-async-message
     '((t (:foreground "yellow")))
   "Face used for mode-line message."
   :group 'helm-async)
 
-(defface helm-async-mode-message
+(defface dired-async-mode-message
     '((t (:background "Firebrick1")))
-  "Face used for `helm-async-mode' lighter."
+  "Face used for `dired-async-mode' lighter."
   :group 'helm-async)
 
-(define-minor-mode helm-async-mode
+(define-minor-mode dired-async-mode
     "Notify mode-line that an async process run."
   :group 'helm-async
   :global t
   :lighter (:eval (propertize " [Async job running]"
-                              'face 'helm-async-mode-message))
-  (unless helm-async-mode
+                              'face 'dired-async-mode-message))
+  (unless dired-async-mode
     (let ((visible-bell t)) (ding))))
 
-(defun helm-async-mode-line-message (text &rest args)
+(defun dired-async-mode-line-message (text &rest args)
   "Notify end of operation in `mode-line'."
   (message nil)
   (let ((mode-line-format (concat
@@ -106,45 +106,45 @@ This allow to turn off async features provided to this package."
                                 (if args
                                     (apply #'format text args)
                                     text)
-                                'face 'helm-async-message))))
+                                'face 'dired-async-message))))
     (force-mode-line-update)
     (sit-for 3)
     (force-mode-line-update)))
 
-(defun helm-async-processes ()
+(defun dired-async-processes ()
   (loop for p in (process-list)
         when (loop for c in (process-command p) thereis
                    (string= "async-batch-invoke" c))
         collect p))
 
-(defun helm-async-kill-process ()
+(defun dired-async-kill-process ()
   (interactive)
-  (let* ((processes (helm-async-processes))
+  (let* ((processes (dired-async-processes))
          (proc (car (last processes))))
     (delete-process proc)
     (unless (> (length processes) 1)
-      (helm-async-mode -1))))
+      (dired-async-mode -1))))
 
-(defun helm-async-after-file-create (len-flist)
+(defun dired-async-after-file-create (len-flist)
   "Callback function used for operation handled by `dired-create-file'."
-  (unless (helm-async-processes)
+  (unless (dired-async-processes)
     ;; Turn off mode-line notification
     ;; only when last process end.
-    (helm-async-mode -1))
-  (when helm-async-operation
-    (if (file-exists-p helm-async-log-file)
+    (dired-async-mode -1))
+  (when dired-async-operation
+    (if (file-exists-p dired-async-log-file)
         (progn
           (pop-to-buffer (get-buffer-create "*helm async*"))
           (erase-buffer)
           (insert "Error: ")
-          (insert-file-contents helm-async-log-file)
-          (delete-file helm-async-log-file))
+          (insert-file-contents dired-async-log-file)
+          (delete-file dired-async-log-file))
         (run-with-timer
          0.1 nil
-         helm-async-message-function "Asynchronous %s of %s file(s) on %s file(s) done"
-         (car helm-async-operation) (cadr helm-async-operation) len-flist))))
+         dired-async-message-function "Asynchronous %s of %s file(s) on %s file(s) done"
+         (car dired-async-operation) (cadr dired-async-operation) len-flist))))
 
-(defun helm-async-maybe-kill-ftp ()
+(defun dired-async-maybe-kill-ftp ()
   "Return a form to kill ftp process in child emacs."
   (quote
    (progn
@@ -179,11 +179,11 @@ corresponding new file name or nil to skip.
 Optional MARKER-CHAR is a character with which to mark every
 newfile's entry, or t to use the current marker character if the
 old file was marked."
-  (setq helm-async-operation nil)
+  (setq dired-async-operation nil)
   (let (dired-create-files-failures failures async-fn-list
         skipped (success-count 0) (total (length fn-list))
         (callback `(lambda (&optional ignore)
-                     (helm-async-after-file-create ,(length fn-list)))))
+                     (dired-async-after-file-create ,(length fn-list)))))
     (let (to overwrite-query
              overwrite-backup-query)   ; for dired-handle-overwrite
       (dolist (from fn-list)
@@ -237,7 +237,7 @@ ESC or `q' to not overwrite any of the remaining files,
                    (file-in-directory-p destname from)
                    (error "Cannot copy `%s' into its subdirectory `%s'"
                           from to)))
-            (if helm-async-be-async
+            (if dired-async-be-async
                 (if overwrite
                     (or (and dired-overwrite-confirmed
                              (push (cons from to) async-fn-list))
@@ -288,24 +288,24 @@ ESC or `q' to not overwrite any of the remaining files,
      (t (message "%s: %s file%s"
                    operation success-count (dired-plural-s success-count))))
     ;; Start async process.
-    (when (and async-fn-list helm-async-be-async)
+    (when (and async-fn-list dired-async-be-async)
       (async-start `(lambda ()
                       (require 'cl) (require 'dired-aux)
-                      ,(async-inject-variables helm-async-env-variables-regexp)
+                      ,(async-inject-variables dired-async-env-variables-regexp)
                       (condition-case err
                           (let ((dired-recursive-copies (quote always)))
                             (loop for (f . d) in (quote ,async-fn-list)
                                   do (funcall (quote ,file-creator) f d t)))
                         (file-error
-                         (with-temp-file ,helm-async-log-file
+                         (with-temp-file ,dired-async-log-file
                            (insert (format "%S" err)))))
-                      ,(helm-async-maybe-kill-ftp))
+                      ,(dired-async-maybe-kill-ftp))
                    callback)
       ;; Run mode-line notifications while process running.
-      (helm-async-mode 1)
-      (setq helm-async-operation (list operation (length async-fn-list)))
+      (dired-async-mode 1)
+      (setq dired-async-operation (list operation (length async-fn-list)))
       (message "%s proceeding asynchronously..." operation)))
-  (unless helm-async-be-async
+  (unless dired-async-be-async
     (dired-move-to-filename)))
 
 
