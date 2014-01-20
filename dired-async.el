@@ -91,7 +91,8 @@ This allow to turn off async features provided to this package."
     "Notify mode-line that an async process run."
   :group 'dired-async
   :global t
-  :lighter (:eval (propertize " [Async job running]"
+  :lighter (:eval (propertize (format " [%s Async job(s) running]"
+                                      (length (dired-async-processes)))
                               'face 'dired-async-mode-message))
   (unless dired-async-mode
     (let ((visible-bell t)) (ding))))
