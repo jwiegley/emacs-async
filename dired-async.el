@@ -75,8 +75,6 @@ This allow to turn off async features provided to this package."
   :group 'dired-async
   :type  'boolean)
 
-(defvaralias 'helm-async-be-async 'dired-async-be-async)
-
 (defface dired-async-message
     '((t (:foreground "yellow")))
   "Face used for mode-line message."
