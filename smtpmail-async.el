@@ -42,13 +42,15 @@
 (require 'smtpmail)
 
 (defun async-smtpmail-send-it ()
-  (let ((to (message-field-value "To")))
+  (let ((to          (message-field-value "To"))
+        (buf-content (buffer-substring-no-properties
+                      (point-min) (point-max))))
     (message "Delivering message to %s..." to)
     (async-start
      `(lambda ()
         (require 'smtpmail)
         (with-temp-buffer
-          (insert ,(buffer-substring-no-properties (point-min) (point-max)))
+          (insert ,buf-content)
           ;; Pass in the variable environment for smtpmail
           ,(async-inject-variables "\\`\\(smtpmail\\|\\(user-\\)?mail\\)-")
           (smtpmail-send-it)))
