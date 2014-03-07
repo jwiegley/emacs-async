@@ -52,7 +52,9 @@
         (with-temp-buffer
           (insert ,buf-content)
           ;; Pass in the variable environment for smtpmail
-          ,(async-inject-variables "\\`\\(smtpmail\\|\\(user-\\)?mail\\)-")
+          ,(async-inject-variables
+            "\\`\\(smtpmail\\|\\(user-\\)?mail\\)-"
+            nil "\\`\\(mail-header-format-function\\|smtpmail-address-buffer\\|mail-mode-abbrev-table\\)")
           (smtpmail-send-it)))
      `(lambda (&optional ignore)
         (message "Delivering message to %s...done" ,to)))))
