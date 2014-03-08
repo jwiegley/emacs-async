@@ -51,6 +51,7 @@
         (require 'smtpmail)
         (with-temp-buffer
           (insert ,buf-content)
+          (set-buffer-multibyte nil)
           ;; Pass in the variable environment for smtpmail
           ,(async-inject-variables
             "\\`\\(smtpmail\\|\\(user-\\)?mail\\)-"
