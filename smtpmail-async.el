@@ -56,8 +56,7 @@
           ,(async-inject-variables
             "\\`\\(smtpmail\\|\\(user-\\)?mail\\)-"
             nil "\\`\\(mail-header-format-function\\|smtpmail-address-buffer\\|mail-mode-abbrev-table\\)")
-          (catch 'done
-            (smtpmail-send-it))))
+          (smtpmail-send-it)))
      `(lambda (&optional ignore)
         (message "Delivering message to %s...done" ,to)))))
 
