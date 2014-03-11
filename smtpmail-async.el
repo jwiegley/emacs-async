@@ -41,7 +41,9 @@
 (require 'async)
 (require 'smtpmail)
 
-(defvar async-smtpmail-before-send-hook nil)
+(defvar async-smtpmail-before-send-hook nil
+  "Hook running in the child emacs in `async-smtpmail-send-it'.
+It is called just before calling `smtpmail-send-it'.")
 
 (defun async-smtpmail-send-it ()
   (let ((to          (message-field-value "To"))
