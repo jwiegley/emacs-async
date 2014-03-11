@@ -56,7 +56,7 @@
           (set-buffer-multibyte nil)
           ;; Pass in the variable environment for smtpmail
           ,(async-inject-variables
-            "\\`\\(smtpmail\\|async-smtpmail\\|\\(user-\\)?mail\\)-"
+            "\\`\\(smtpmail\\|async-smtpmail\\|\\(user-\\)?mail\\)-\\|auth-sources"
             nil "\\`\\(mail-header-format-function\\|smtpmail-address-buffer\\|mail-mode-abbrev-table\\)")
           (run-hooks 'async-smtpmail-before-send-hook)
           (smtpmail-send-it)))
