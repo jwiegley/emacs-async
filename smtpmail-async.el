@@ -41,6 +41,8 @@
 (require 'async)
 (require 'smtpmail)
 
+(defvar async-smtpmail-before-send-hook nil)
+
 (defun async-smtpmail-send-it ()
   (let ((to          (message-field-value "To"))
         (buf-content (buffer-substring-no-properties
@@ -54,8 +56,9 @@
           (set-buffer-multibyte nil)
           ;; Pass in the variable environment for smtpmail
           ,(async-inject-variables
-            "\\`\\(smtpmail\\|\\(user-\\)?mail\\)-"
+            "\\`\\(smtpmail\\|async-smtpmail\\|\\(user-\\)?mail\\)-"
             nil "\\`\\(mail-header-format-function\\|smtpmail-address-buffer\\|mail-mode-abbrev-table\\)")
+          (run-hooks 'async-smtpmail-before-send-hook)
           (smtpmail-send-it)))
      `(lambda (&optional ignore)
         (message "Delivering message to %s...done" ,to)))))
