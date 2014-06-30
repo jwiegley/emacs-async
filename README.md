@@ -57,8 +57,8 @@ using `async-get', blocking until the value is ready.  Example:
                  (async-get proc)))
 
 If you don't want to use a callback, and you don't care about any return value
-form the child process, pass the `ignore' symbol as the second argument (if
-you don't, and never call `async-get', it will leave *emacs* process buffers
+form the child process, pass the `'ignore` symbol as the second argument (if
+you don't, and never call `async-get`, it will leave *emacs* process buffers
 hanging around):
 
     (async-start
