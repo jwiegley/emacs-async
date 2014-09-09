@@ -6,7 +6,7 @@ async.el is a module for doing asynchronous processing in Emacs.
 
 Add to your .emacs.el:
 
-     (when (tv-require 'dired-aux)
+     (when (require 'dired-aux)
        (require 'dired-async))
 
 This will allow you to run  asynchronously
