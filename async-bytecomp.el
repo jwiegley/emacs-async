@@ -6,7 +6,6 @@
 ;; Authors: John Wiegley <jwiegley@gmail.com>
 ;;          Thierry Volpiatto <thierry.volpiatto@gmail.com>
 
-;; Version: 1.0
 ;; Keywords: dired async byte-compile
 ;; X-URL: https://github.com/jwiegley/dired-async
 
@@ -40,9 +39,10 @@
 
 ;;; Code:
 
+(require 'cl-lib)
 (require 'async)
 
-(defvar async-byte-compile-log-file "/tmp/async-bytecomp.log")
+(defvar async-byte-compile-log-file "~/.emacs.d/async-bytecomp.log")
 
 (defun async-byte-recompile-directory (directory &optional arg force)
   (cl-loop with dir = (directory-files directory t "\\.elc\\'")

@@ -1,2 +1,2 @@
-(define-package "async" "1.1" "Asynchronous processing in Emacs" 'nil)
+(define-package "async" "1.2" "Asynchronous processing in Emacs" 'nil)
 

@@ -6,7 +6,6 @@
 ;; Authors: John Wiegley <jwiegley@gmail.com>
 ;;          Thierry Volpiatto <thierry.volpiatto@gmail.com>
 
-;; Version: 1.0
 ;; Keywords: dired async network
 ;; X-URL: https://github.com/jwiegley/dired-async
 

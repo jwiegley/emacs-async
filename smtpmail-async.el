@@ -4,7 +4,7 @@
 
 ;; Author: John Wiegley <jwiegley@gmail.com>
 ;; Created: 18 Jun 2012
-;; Version: 1.0
+
 ;; Keywords: email async
 ;; X-URL: https://github.com/jwiegley/emacs-async
 
