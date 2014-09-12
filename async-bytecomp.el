@@ -49,6 +49,8 @@
            unless dir return nil
            for f in dir
            when (file-exists-p f) do (delete-file f))
+  ;; Ensure async is reloaded when async.elc is deleted.
+  ;; This happen when recompiling its directory.
   (load (locate-library "async"))
   (let ((call-back
          `(lambda (&optional ignore)
