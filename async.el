@@ -268,9 +268,10 @@ returns nil.  It can still be useful, however, as an argument to
                        (expand-file-name invocation-name
                                          invocation-directory))
               ,finish-func
-              ;; Ensure we use the right file when the .elc have
-              ;; been deleted by using `locate-library'.
-              "-Q" "-l" ,(locate-library "async")
+              "-Q" "-l"
+              ;; Using `locate-library' ensure we use the right file
+              ;; when the .elc have been deleted.
+              ,(locate-library "async")
               "-batch" "-f" "async-batch-invoke"
               (if async-send-over-pipe
                   "<none>"
