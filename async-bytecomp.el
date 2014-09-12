@@ -89,10 +89,7 @@
 
 (defadvice package--compile (around byte-compile-async activate)
   (package-activate-1 pkg-desc)
-  (let ((compfn (if (fboundp 'async-byte-recompile-directory)
-                    #'async-byte-recompile-directory
-                    #'byte-recompile-directory)))
-    (funcall compfn (package-desc-dir pkg-desc) 0 t)))
+  (async-byte-recompile-directory (package-desc-dir pkg-desc) 0 t))
 
 (provide 'async-bytecomp)
 
