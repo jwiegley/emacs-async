@@ -49,6 +49,7 @@
            unless dir return nil
            for f in dir
            when (file-exists-p f) do (delete-file f))
+  (load (locate-library "async"))
   (let ((call-back
          `(lambda (&optional ignore)
             (if (file-exists-p async-byte-compile-log-file)
@@ -64,8 +65,9 @@
                       (goto-char (point-min))
                       (while (re-search-forward "^.*:Error:" nil t)
                         (incf n)))
-                    (when (> n 0)
-                      (message "Failed to compile %d files in directory `%s'" n ,directory))))
+                    (if (> n 0)
+                        (message "Failed to compile %d files in directory `%s'" n ,directory)
+                        (message "Directory `%s' compiled asynchronously with warnings" ,directory))))
                 (message "Directory `%s' compiled asynchronously with success" ,directory)))))
     (async-start
      `(lambda ()
@@ -87,7 +89,10 @@
 
 (defadvice package--compile (around byte-compile-async activate)
   (package-activate-1 pkg-desc)
-  (async-byte-recompile-directory (package-desc-dir pkg-desc) 0 t))
+  (let ((compfn (if (fboundp 'async-byte-recompile-directory)
+                    #'async-byte-recompile-directory
+                    #'byte-recompile-directory)))
+    (funcall compfn (package-desc-dir pkg-desc) 0 t)))
 
 (provide 'async-bytecomp)
 
