@@ -40,6 +40,7 @@
 
 (require 'async)
 (require 'smtpmail)
+(require 'message)
 
 (defvar async-smtpmail-before-send-hook nil
   "Hook running in the child emacs in `async-smtpmail-send-it'.
