@@ -34,6 +34,8 @@
 ;;
 ;; This assumes you already have smtpmail.el working.
 
+;;; Code:
+
 (defgroup smtpmail-async nil
   "Send e-mail with smtpmail.el asynchronously"
   :group 'smptmail)
