@@ -50,7 +50,7 @@
            for f in dir
            when (file-exists-p f) do (delete-file f))
   ;; Ensure async is reloaded when async.elc is deleted.
-  ;; This happen when recompiling its directory.
+  ;; This happen when recompiling its own directory.
   (load "async")
   (let ((call-back
          `(lambda (&optional ignore)
