@@ -90,6 +90,11 @@
     (message "Started compiling asynchronously directory %s..." directory)))
 
 (defadvice package--compile (around byte-compile-async activate)
+  ;; FIXME this seems redundant and unneeded, the only thing it
+  ;; does is loading the autoload file to update load-path but
+  ;; async-byte-recompile-directory is already doing this.
+  ;; for the rest (i.e installing info) it is done anyway after
+  ;; compilation in package-activate (force arg).
   (package-activate-1 pkg-desc)
   (async-byte-recompile-directory (package-desc-dir pkg-desc) 0 t))
 
