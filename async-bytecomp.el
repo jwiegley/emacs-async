@@ -56,11 +56,12 @@
          `(lambda (&optional ignore)
             (if (file-exists-p async-byte-compile-log-file)
                 (progn
-                  (pop-to-buffer (generate-new-buffer-name
-                                  byte-compile-log-buffer))
-                  (erase-buffer)
-                  (insert-file-contents async-byte-compile-log-file)
-                  (compilation-mode)
+                  (display-buffer (get-buffer-create
+                                   byte-compile-log-buffer))
+                  (goto-char (point-max))
+                  (let ((inhibit-read-only t))
+                    (insert-file-contents async-byte-compile-log-file)
+                    (compilation-mode))
                   (delete-file async-byte-compile-log-file)
                   (let ((n 0))
                     (save-excursion
@@ -70,7 +71,7 @@
                     (if (> n 0)
                         (message "Failed to compile %d files in directory `%s'" n ,directory)
                         (message "Directory `%s' compiled asynchronously with warnings" ,directory))))
-                (message "Directory `%s' compiled asynchronously with success" ,directory)))))
+                  (message "Directory `%s' compiled asynchronously with success" ,directory)))))
     (async-start
      `(lambda ()
         (require 'bytecomp)
