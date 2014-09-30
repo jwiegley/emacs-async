@@ -72,8 +72,8 @@
                       (if (> n 0)
                           (message "Failed to compile %d files in directory `%s'" n ,directory)
                           (message "Directory `%s' compiled asynchronously with warnings" ,directory)))))
-              (unless ,quiet
-                (message "Directory `%s' compiled asynchronously with success" ,directory))))))
+                (unless ,quiet
+                  (message "Directory `%s' compiled asynchronously with success" ,directory))))))
     (async-start
      `(lambda ()
         (require 'bytecomp)
