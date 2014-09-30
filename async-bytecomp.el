@@ -44,7 +44,7 @@
 
 (defvar async-byte-compile-log-file "~/.emacs.d/async-bytecomp.log")
 
-(defun async-byte-recompile-directory (directory &optional arg force)
+(defun async-byte-recompile-directory (directory &optional arg force quiet)
   (cl-loop with dir = (directory-files directory t "\\.elc\\'")
            unless dir return nil
            for f in dir
@@ -64,14 +64,16 @@
                       (compilation-mode))
                     (display-buffer buf)
                     (delete-file async-byte-compile-log-file)
-                    (save-excursion
-                      (goto-char (point-min))
-                      (while (re-search-forward "^.*:Error:" nil t)
-                        (incf n))))
-                  (if (> n 0)
-                      (message "Failed to compile %d files in directory `%s'" n ,directory)
-                    (message "Directory `%s' compiled asynchronously with warnings" ,directory)))
-              (message "Directory `%s' compiled asynchronously with success" ,directory)))))
+                    (unless ,quiet
+                      (save-excursion
+                        (goto-char (point-min))
+                        (while (re-search-forward "^.*:Error:" nil t)
+                          (incf n)))
+                      (if (> n 0)
+                          (message "Failed to compile %d files in directory `%s'" n ,directory)
+                          (message "Directory `%s' compiled asynchronously with warnings" ,directory)))))
+              (unless ,quiet
+                (message "Directory `%s' compiled asynchronously with success" ,directory))))))
     (async-start
      `(lambda ()
         (require 'bytecomp)
@@ -97,7 +99,7 @@
   ;; for the rest (i.e installing info) it is done anyway after
   ;; compilation in package-activate (force arg).
   (package-activate-1 pkg-desc)
-  (async-byte-recompile-directory (package-desc-dir pkg-desc) 0 t))
+  (async-byte-recompile-directory (package-desc-dir pkg-desc) 0 t t))
 
 (provide 'async-bytecomp)
 
