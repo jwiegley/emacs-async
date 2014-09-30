@@ -55,23 +55,23 @@
   (let ((call-back
          `(lambda (&optional ignore)
             (if (file-exists-p async-byte-compile-log-file)
-                (progn
-                  (display-buffer (get-buffer-create
-                                   byte-compile-log-buffer))
-                  (goto-char (point-max))
-                  (let ((inhibit-read-only t))
-                    (insert-file-contents async-byte-compile-log-file)
-                    (compilation-mode))
-                  (delete-file async-byte-compile-log-file)
-                  (let ((n 0))
+                (let ((buf (get-buffer-create byte-compile-log-buffer))
+                      (n 0))
+                  (with-current-buffer buf
+                    (goto-char (point-max))
+                    (let ((inhibit-read-only t))
+                      (insert-file-contents async-byte-compile-log-file)
+                      (compilation-mode))
+                    (display-buffer buf)
+                    (delete-file async-byte-compile-log-file)
                     (save-excursion
                       (goto-char (point-min))
                       (while (re-search-forward "^.*:Error:" nil t)
-                        (incf n)))
-                    (if (> n 0)
-                        (message "Failed to compile %d files in directory `%s'" n ,directory)
-                        (message "Directory `%s' compiled asynchronously with warnings" ,directory))))
-                  (message "Directory `%s' compiled asynchronously with success" ,directory)))))
+                        (incf n))))
+                  (if (> n 0)
+                      (message "Failed to compile %d files in directory `%s'" n ,directory)
+                    (message "Directory `%s' compiled asynchronously with warnings" ,directory)))
+              (message "Directory `%s' compiled asynchronously with success" ,directory)))))
     (async-start
      `(lambda ()
         (require 'bytecomp)
