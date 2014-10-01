@@ -99,6 +99,7 @@
   ;; for the rest (i.e installing info) it is done anyway after
   ;; compilation in package-activate (force arg).
   (package-activate-1 pkg-desc)
+  (load "async-bytecomp")
   (async-byte-recompile-directory (package-desc-dir pkg-desc) 0 t t))
 
 (provide 'async-bytecomp)
