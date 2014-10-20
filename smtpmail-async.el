@@ -48,6 +48,7 @@
   "Hook running in the child emacs in `async-smtpmail-send-it'.
 It is called just before calling `smtpmail-send-it'.")
 
+;;;###autoload
 (defun async-smtpmail-send-it ()
   (let ((to          (message-field-value "To"))
         (buf-content (buffer-substring-no-properties

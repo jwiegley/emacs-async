@@ -84,6 +84,7 @@ This allow to turn off async features provided to this package."
   "Face used for `dired-async-mode' lighter."
   :group 'dired-async)
 
+;;;###autoload
 (define-minor-mode dired-async-mode
     "Notify mode-line that an async process run."
   :group 'dired-async
