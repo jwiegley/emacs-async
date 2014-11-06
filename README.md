@@ -1,10 +1,10 @@
 # emacs-async
 
-async.el is a module for doing asynchronous processing in Emacs.
+`async.el` is a module for doing asynchronous processing in Emacs.
 
 # Install
 
-Add to your .emacs.el:
+Add to your `.emacs.el`:
 
      (when (require 'dired-aux)
        (require 'dired-async))
@@ -58,7 +58,7 @@ using `async-get`, blocking until the value is ready.  Example:
 
 If you don't want to use a callback, and you don't care about any return value
 form the child process, pass the `'ignore` symbol as the second argument (if
-you don't, and never call `async-get`, it will leave *emacs* process buffers
+you don't, and never call `async-get`, it will leave ``*emacs*`` process buffers
 hanging around):
 
     (async-start
