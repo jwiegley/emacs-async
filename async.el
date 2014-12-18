@@ -200,7 +200,8 @@ its FINISH-FUNC is nil."
 PROGRAM is passed PROGRAM-ARGS, calling FINISH-FUNC with the
 process object when done.  If FINISH-FUNC is nil, the future
 object will return the process object when the program is
-finished."
+finished.  Set DEFAULT-DIRECTORY to change PROGRAM's current
+working directory."
   (let* ((buf (generate-new-buffer (concat "*" name "*")))
          (proc (let ((process-connection-type nil))
                  (apply #'start-process name buf program program-args))))
