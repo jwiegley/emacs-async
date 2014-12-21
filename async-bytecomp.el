@@ -68,7 +68,7 @@
                       (save-excursion
                         (goto-char (point-min))
                         (while (re-search-forward "^.*:Error:" nil t)
-                          (incf n)))
+                          (cl-incf n)))
                       (if (> n 0)
                           (message "Failed to compile %d files in directory `%s'" n ,directory)
                           (message "Directory `%s' compiled asynchronously with warnings" ,directory)))))

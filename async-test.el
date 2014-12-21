@@ -134,3 +134,7 @@
 (provide 'async-test)
 
 ;;; async-test.el ends here
+
+;; Local Variables:
+;; no-byte-compile: t
+;; End:
