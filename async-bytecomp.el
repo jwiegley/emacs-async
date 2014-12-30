@@ -43,7 +43,9 @@
 (require 'async)
 
 (defcustom async-bytecomp-allowed-packages '(async helm)
-  "Packages in this list will be compiled asynchronously by `package--compile'."
+  "Packages in this list will be compiled asynchronously by `package--compile'.
+All the dependencies of these packages will be compiled async too,
+so no need to add dependencies to this list."
   :group 'async
   :type '(repeat (choice symbol)))
 
