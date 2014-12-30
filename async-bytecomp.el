@@ -42,6 +42,11 @@
 (require 'cl-lib)
 (require 'async)
 
+(defcustom async-bytecomp-allowed-packages '(async helm)
+  "Packages in this list will be compiled asynchronously by `package--compile'."
+  :group 'async
+  :type '(repeat (choice symbol)))
+
 (defvar async-byte-compile-log-file "~/.emacs.d/async-bytecomp.log")
 
 (defun async-byte-recompile-directory (directory &optional quiet)
@@ -95,11 +100,16 @@ All *.elc files are systematically deleted before proceeding."
     (message "Started compiling asynchronously directory %s" directory)))
 
 (defadvice package--compile (around byte-compile-async activate)
-  (when (eq (package-desc-name pkg-desc) 'async)
-    (fmakunbound 'async-byte-recompile-directory))
-  (package-activate-1 pkg-desc)
-  (load "async-bytecomp") ; emacs-24.3 don't reload new files.
-  (async-byte-recompile-directory (package-desc-dir pkg-desc) t))
+  (let ((cur-package (package-desc-name pkg-desc)))
+    (if (memq cur-package async-bytecomp-allowed-packages)
+        (progn
+          (when (eq cur-package 'async)
+            (fmakunbound 'async-byte-recompile-directory))
+          (package-activate-1 pkg-desc)
+          (load "async-bytecomp") ; emacs-24.3 don't reload new files.
+          (async-byte-recompile-directory (package-desc-dir pkg-desc) t))
+        ad-do-it)))
+
 
 (provide 'async-bytecomp)
 
