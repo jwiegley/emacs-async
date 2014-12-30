@@ -99,9 +99,20 @@ All *.elc files are systematically deleted before proceeding."
      call-back)
     (message "Started compiling asynchronously directory %s" directory)))
 
+(defvar package-archive-contents)
+(declare-function package-desc-reqs "package.el" (cl-x))
+
+(defun async-bytecomp-get-allowed-pkgs ()
+  (cl-loop for p in async-bytecomp-allowed-packages
+           for pkg-desc = (car (assoc-default p package-archive-contents))
+           append (mapcar 'car (package-desc-reqs pkg-desc)) into reqs
+           finally return
+           (cl-remove-duplicates
+            (append async-bytecomp-allowed-packages reqs))))
+
 (defadvice package--compile (around byte-compile-async activate)
   (let ((cur-package (package-desc-name pkg-desc)))
-    (if (memq cur-package async-bytecomp-allowed-packages)
+    (if (memq cur-package (async-bytecomp-get-allowed-pkgs))
         (progn
           (when (eq cur-package 'async)
             (fmakunbound 'async-byte-recompile-directory))
