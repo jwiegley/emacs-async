@@ -105,12 +105,13 @@ All *.elc files are systematically deleted before proceeding."
 (declare-function package-desc-reqs "package.el" (cl-x))
 
 (defun async-bytecomp-get-allowed-pkgs ()
-  (cl-loop for p in async-bytecomp-allowed-packages
-           for pkg-desc = (car (assoc-default p package-archive-contents))
-           append (mapcar 'car (package-desc-reqs pkg-desc)) into reqs
-           finally return
-           (cl-remove-duplicates
-            (append async-bytecomp-allowed-packages reqs))))
+  (when async-bytecomp-allowed-packages
+    (cl-loop for p in async-bytecomp-allowed-packages
+          for pkg-desc = (car (assoc-default p package-archive-contents))
+          append (mapcar 'car (package-desc-reqs pkg-desc)) into reqs
+          finally return
+          (cl-remove-duplicates
+           (append async-bytecomp-allowed-packages reqs)))))
 
 (defadvice package--compile (around byte-compile-async activate)
   (let ((cur-package (package-desc-name pkg-desc)))
