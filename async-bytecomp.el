@@ -133,7 +133,7 @@ All *.elc files are systematically deleted before proceeding."
 
 (defadvice package--compile (around byte-compile-async activate)
   (let ((cur-package (package-desc-name pkg-desc)))
-    (if (or (eq async-bytecomp-get-allowed-pkgs 'all)
+    (if (or (eq async-bytecomp-allowed-packages 'all)
             (memq cur-package (async-bytecomp-get-allowed-pkgs)))
         (progn
           (when (eq cur-package 'async)
