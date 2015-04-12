@@ -45,7 +45,9 @@
 (defcustom async-bytecomp-allowed-packages '(async helm)
   "Packages in this list will be compiled asynchronously by `package--compile'.
 All the dependencies of these packages will be compiled async too,
-so no need to add dependencies to this list."
+so no need to add dependencies to this list.
+The value of this variable can also be the symbol `all', in this case
+packages are always compiled asynchronously."
   :group 'async
   :type '(repeat (choice symbol)))
 
@@ -121,7 +123,8 @@ All *.elc files are systematically deleted before proceeding."
       (t        (delete-dups (append direct-deps indirect-deps))))))
 
 (defun async-bytecomp-get-allowed-pkgs ()
-  (when async-bytecomp-allowed-packages
+  (when (and async-bytecomp-allowed-packages
+             (listp async-bytecomp-allowed-packages))
     (cl-loop for p in async-bytecomp-allowed-packages
              append (async-bytecomp--get-package-deps p) into reqs
              finally return
@@ -130,7 +133,8 @@ All *.elc files are systematically deleted before proceeding."
 
 (defadvice package--compile (around byte-compile-async activate)
   (let ((cur-package (package-desc-name pkg-desc)))
-    (if (memq cur-package (async-bytecomp-get-allowed-pkgs))
+    (if (or (eq async-bytecomp-get-allowed-pkgs 'all)
+            (memq cur-package (async-bytecomp-get-allowed-pkgs)))
         (progn
           (when (eq cur-package 'async)
             (fmakunbound 'async-byte-recompile-directory))
