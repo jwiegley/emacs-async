@@ -102,31 +102,28 @@ All *.elc files are systematically deleted before proceeding."
     (message "Started compiling asynchronously directory %s" directory)))
 
 (defvar package-archive-contents)
-(defvar package-alist)
 (declare-function package-desc-reqs "package.el" (cl-x))
-(declare-function package--get-deps "package.el" (pkg &optional only))
 
-(unless (fboundp 'package--get-deps)
-  (defun package--get-deps (pkg &optional only)
-    (let* ((pkg-desc (cadr (assq pkg package-alist)))
-           (direct-deps (cl-loop for p in (package-desc-reqs pkg-desc)
-                                 for name = (car p)
-                                 when (assq name package-alist)
-                                 collect name))
-           (indirect-deps (unless (eq only 'direct)
-                            (delete-dups
-                             (cl-loop for p in direct-deps
-                                      append (package--get-deps p))))))
-      (cl-case only
-        (direct   direct-deps)
-        (separate (list direct-deps indirect-deps))
-        (indirect indirect-deps)
-        (t        (delete-dups (append direct-deps indirect-deps)))))))
+(defun async-bytecomp--get-package-deps (pkg &optional only)
+  (let* ((pkg-desc (cadr (assq pkg package-archive-contents)))
+         (direct-deps (cl-loop for p in (package-desc-reqs pkg-desc)
+                               for name = (car p)
+                               when (assq name package-archive-contents)
+                               collect name))
+         (indirect-deps (unless (eq only 'direct)
+                          (delete-dups
+                           (cl-loop for p in direct-deps append
+                                    (async-bytecomp--get-package-deps p))))))
+    (cl-case only
+      (direct   direct-deps)
+      (separate (list direct-deps indirect-deps))
+      (indirect indirect-deps)
+      (t        (delete-dups (append direct-deps indirect-deps))))))
 
 (defun async-bytecomp-get-allowed-pkgs ()
   (when async-bytecomp-allowed-packages
     (cl-loop for p in async-bytecomp-allowed-packages
-             append (package--get-deps p) into reqs
+             append (async-bytecomp--get-package-deps p) into reqs
              finally return
              (delete-dups
               (append async-bytecomp-allowed-packages reqs)))))
