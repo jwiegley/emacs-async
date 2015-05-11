@@ -268,7 +268,7 @@ ESC or `q' to not overwrite any of the remaining files,
 ;;;###autoload
 (define-minor-mode dired-async-mode
     "Do dired actions asynchronously."
-  :group 'helm
+  :group 'dired-async
   :global t
   (if dired-async-mode
       (advice-add 'dired-create-files :override #'dired-async-create-files)
