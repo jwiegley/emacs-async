@@ -81,17 +81,17 @@ This allow to turn off async features provided to this package."
 
 (defface dired-async-mode-message
     '((t (:background "Firebrick1")))
-  "Face used for `dired-async-mode' lighter."
+  "Face used for `dired-async-modeline-mode' lighter."
   :group 'dired-async)
 
-(define-minor-mode dired-async-mode
+(define-minor-mode dired-async-modeline-mode
     "Notify mode-line that an async process run."
   :group 'dired-async
   :global t
   :lighter (:eval (propertize (format " [%s Async job(s) running]"
                                       (length (dired-async-processes)))
                               'face 'dired-async-mode-message))
-  (unless dired-async-mode
+  (unless dired-async-modeline-mode
     (let ((visible-bell t)) (ding))))
 
 (defun dired-async-mode-line-message (text &rest args)
@@ -119,14 +119,14 @@ This allow to turn off async features provided to this package."
          (proc (car (last processes))))
     (delete-process proc)
     (unless (> (length processes) 1)
-      (dired-async-mode -1))))
+      (dired-async-modeline-mode -1))))
 
 (defun dired-async-after-file-create (len-flist)
   "Callback function used for operation handled by `dired-create-file'."
   (unless (dired-async-processes)
     ;; Turn off mode-line notification
     ;; only when last process end.
-    (dired-async-mode -1))
+    (dired-async-modeline-mode -1))
   (when dired-async-operation
     (if (file-exists-p dired-async-log-file)
         (progn
@@ -151,37 +151,18 @@ This allow to turn off async features provided to this package."
                                        (buffer-name b)) b))))
        (when buf (kill-buffer buf))))))
 
-(defun dired-create-files (file-creator operation fn-list name-constructor
-                           &optional marker-char)
-  "Create one or more new files from a list of existing files FN-LIST.
-This function also handles querying the user, updating Dired
-buffers, and displaying a success or failure message.
+(defun dired-async-create-files (file-creator operation fn-list name-constructor
+                                 &optional marker-char)
+  "Same as `dired-create-files' but asynchronous.
 
-FILE-CREATOR should be a function.  It is called once for each
-file in FN-LIST, and must create a new file, querying the user
-and updating Dired buffers as necessary.  It should accept three
-arguments: the old file name, the new name, and an argument
-OK-IF-ALREADY-EXISTS with the same meaning as in `copy-file'.
-
-OPERATION should be a capitalized string describing the operation
-performed (e.g. `Copy').  It is used for error logging.
-
-FN-LIST is the list of files to copy (full absolute file names).
-
-NAME-CONSTRUCTOR should be a function accepting a single
-argument, the name of an old file, and returning either the
-corresponding new file name or nil to skip.
-
-Optional MARKER-CHAR is a character with which to mark every
-newfile's entry, or t to use the current marker character if the
-old file was marked."
+See `dired-create-files' for the behavior of arguments."
   (setq dired-async-operation nil)
   (let (dired-create-files-failures failures async-fn-list
-        skipped (success-count 0) (total (length fn-list))
-        (callback `(lambda (&optional ignore)
-                     (dired-async-after-file-create ,(length fn-list)))))
+                                    skipped (success-count 0) (total (length fn-list))
+                                    (callback `(lambda (&optional ignore)
+                                                 (dired-async-after-file-create ,(length fn-list)))))
     (let (to overwrite-query
-             overwrite-backup-query)   ; for dired-handle-overwrite
+             overwrite-backup-query)    ; for dired-handle-overwrite
       (dolist (from fn-list)
         (setq to (funcall name-constructor from))
         (if (equal to from)
@@ -191,100 +172,82 @@ old file was marked."
                          (downcase operation) from)))
         (if (not to)
             (setq skipped (cons (dired-make-relative from) skipped))
-          (let* ((overwrite (file-exists-p to))
-                 (dired-overwrite-confirmed ; for dired-handle-overwrite
-                  (and overwrite
-                       (let ((help-form '(format "\
+            (let* ((overwrite (file-exists-p to))
+                   (dired-overwrite-confirmed ; for dired-handle-overwrite
+                    (and overwrite
+                         (let ((help-form '(format "\
 Type SPC or `y' to overwrite file `%s',
 DEL or `n' to skip to next,
 ESC or `q' to not overwrite any of the remaining files,
 `!' to overwrite all remaining files with no more questions." to)))
-                         (dired-query 'overwrite-query
-                                      "Overwrite `%s'?" to))))
-                 ;; must determine if FROM is marked before file-creator
-                 ;; gets a chance to delete it (in case of a move).
-                 (actual-marker-char
-                  (cond  ((integerp marker-char) marker-char)
-                         (marker-char (dired-file-marker from)) ; slow
-                         (t nil))))
-            ;; Handle the `dired-copy-file' file-creator specially
-            ;; When copying a directory to another directory or
-            ;; possibly to itself or one of its subdirectories.
-            ;; e.g "~/foo/" => "~/test/"
-            ;; or "~/foo/" =>"~/foo/"
-            ;; or "~/foo/ => ~/foo/bar/")
-            ;; In this case the 'name-constructor' have set the destination
-            ;; TO to "~/test/foo" because the old emacs23 behavior
-            ;; of `copy-directory' was to not create the subdirectory
-            ;; and instead copy the contents.
-            ;; With the new behavior of `copy-directory'
-            ;; (similar to the `cp' shell command) we don't
-            ;; need such a construction of the target directory,
-            ;; so modify the destination TO to "~/test/" instead of "~/test/foo/".
-            (let ((destname (file-name-directory to)))
-              (when (and (file-directory-p from)
-                         (file-directory-p to)
-                         (eq file-creator 'dired-copy-file))
-                (setq to destname))
-              ;; If DESTNAME is a subdirectory of FROM, not a symlink,
-              ;; and the method in use is copying, signal an error.
-              (and (eq t (car (file-attributes destname)))
-                   (eq file-creator 'dired-copy-file)
-                   (file-in-directory-p destname from)
-                   (error "Cannot copy `%s' into its subdirectory `%s'"
-                          from to)))
-            (if dired-async-be-async
-                (if overwrite
-                    (or (and dired-overwrite-confirmed
-                             (push (cons from to) async-fn-list))
-                        (progn
-                          (push (dired-make-relative from) failures)
-                          (dired-log "%s `%s' to `%s' failed"
-                                     operation from to)))
-                    (push (cons from to) async-fn-list))
-                (condition-case err
-                    (progn
-                      (funcall file-creator from to dired-overwrite-confirmed)
-                      (if overwrite
-                          ;; If we get here, file-creator hasn't been aborted
-                          ;; and the old entry (if any) has to be deleted
-                          ;; before adding the new entry.
-                          (dired-remove-file to))
-                      (setq success-count (1+ success-count))
-                      (message "%s: %d of %d" operation success-count total)
-                      (dired-add-file to actual-marker-char))
-                  (file-error		; FILE-CREATOR aborted
-                   (progn
-                     (push (dired-make-relative from)
-                           failures)
-                     (dired-log "%s `%s' to `%s' failed:\n%s\n"
-                                operation from to err)))))))))
+                           (dired-query 'overwrite-query
+                                        "Overwrite `%s'?" to))))
+                   ;; must determine if FROM is marked before file-creator
+                   ;; gets a chance to delete it (in case of a move).
+                   (actual-marker-char
+                    (cond  ((integerp marker-char) marker-char)
+                           (marker-char (dired-file-marker from)) ; slow
+                           (t nil))))
+              ;; Handle the `dired-copy-file' file-creator specially
+              ;; When copying a directory to another directory or
+              ;; possibly to itself or one of its subdirectories.
+              ;; e.g "~/foo/" => "~/test/"
+              ;; or "~/foo/" =>"~/foo/"
+              ;; or "~/foo/ => ~/foo/bar/")
+              ;; In this case the 'name-constructor' have set the destination
+              ;; TO to "~/test/foo" because the old emacs23 behavior
+              ;; of `copy-directory' was to not create the subdirectory
+              ;; and instead copy the contents.
+              ;; With the new behavior of `copy-directory'
+              ;; (similar to the `cp' shell command) we don't
+              ;; need such a construction of the target directory,
+              ;; so modify the destination TO to "~/test/" instead of "~/test/foo/".
+              (let ((destname (file-name-directory to)))
+                (when (and (file-directory-p from)
+                           (file-directory-p to)
+                           (eq file-creator 'dired-copy-file))
+                  (setq to destname))
+                ;; If DESTNAME is a subdirectory of FROM, not a symlink,
+                ;; and the method in use is copying, signal an error.
+                (and (eq t (car (file-attributes destname)))
+                     (eq file-creator 'dired-copy-file)
+                     (file-in-directory-p destname from)
+                     (error "Cannot copy `%s' into its subdirectory `%s'"
+                            from to)))
+              (if overwrite
+                  (or (and dired-overwrite-confirmed
+                           (push (cons from to) async-fn-list))
+                      (progn
+                        (push (dired-make-relative from) failures)
+                        (dired-log "%s `%s' to `%s' failed"
+                                   operation from to)))
+                  (push (cons from to) async-fn-list))))))
     ;; Handle error happening in host emacs.
     (cond
-     (dired-create-files-failures
-      (setq failures (nconc failures dired-create-files-failures))
-      (dired-log-summary
-       (format "%s failed for %d file%s in %d requests"
+      (dired-create-files-failures
+       (setq failures (nconc failures dired-create-files-failures))
+       (dired-log-summary
+        (format "%s failed for %d file%s in %d requests"
                 operation (length failures)
                 (dired-plural-s (length failures))
                 total)
-       failures))
-     (failures
-      (dired-log-summary
-       (format "%s failed for %d of %d file%s"
+        failures))
+      (failures
+       (dired-log-summary
+        (format "%s failed for %d of %d file%s"
                 operation (length failures)
                 total (dired-plural-s total))
-       failures))
-     (skipped
-      (dired-log-summary
-       (format "%s: %d of %d file%s skipped"
+        failures))
+      (skipped
+       (dired-log-summary
+        (format "%s: %d of %d file%s skipped"
                 operation (length skipped) total
                 (dired-plural-s total))
-       skipped))
-     (t (message "%s: %s file%s"
-                   operation success-count (dired-plural-s success-count))))
+        skipped))
+      (t (message "%s: %s file%s"
+                  operation success-count (dired-plural-s success-count))))
     ;; Start async process.
-    (when (and async-fn-list dired-async-be-async)
+    (when async-fn-list
       (async-start `(lambda ()
                       (require 'cl-lib) (require 'dired-aux) (require 'dired-x)
                       ,(async-inject-variables dired-async-env-variables-regexp)
@@ -298,11 +261,17 @@ ESC or `q' to not overwrite any of the remaining files,
                       ,(dired-async-maybe-kill-ftp))
                    callback)
       ;; Run mode-line notifications while process running.
-      (dired-async-mode 1)
+      (dired-async-modeline-mode 1)
       (setq dired-async-operation (list operation (length async-fn-list)))
-      (message "%s proceeding asynchronously..." operation)))
-  (unless dired-async-be-async
-    (dired-move-to-filename)))
+      (message "%s proceeding asynchronously..." operation))))
+
+(define-minor-mode dired-async-mode
+    "Do dired actions asynchronously."
+  :group 'helm
+  :global t
+  (if dired-async-mode
+      (advice-add 'dired-create-files :override #'dired-async-create-files)
+      (advice-remove 'dired-create-files #'dired-async-create-files)))
 
 
 (provide 'dired-async)
