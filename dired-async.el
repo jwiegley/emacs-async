@@ -265,14 +265,22 @@ ESC or `q' to not overwrite any of the remaining files,
       (setq dired-async-operation (list operation (length async-fn-list)))
       (message "%s proceeding asynchronously..." operation))))
 
+(defadvice dired-create-files (around dired-async)
+  (dired-async-create-files file-creator operation fn-list
+                            name-constructor marker-char))
+
 ;;;###autoload
 (define-minor-mode dired-async-mode
     "Do dired actions asynchronously."
   :group 'dired-async
   :global t
   (if dired-async-mode
-      (advice-add 'dired-create-files :override #'dired-async-create-files)
-      (advice-remove 'dired-create-files #'dired-async-create-files)))
+      (if (fboundp 'advice-add)
+          (advice-add 'dired-create-files :override #'dired-async-create-files)
+          (ad-activate 'dired-create-files))
+      (if (fboundp 'advice-remove)
+          (advice-remove 'dired-create-files #'dired-async-create-files)
+          (ad-deactivate 'dired-create-files))))
 
 
 (provide 'dired-async)
