@@ -81,17 +81,17 @@ This allow to turn off async features provided to this package."
 
 (defface dired-async-mode-message
     '((t (:background "Firebrick1")))
-  "Face used for `dired-async-modeline-mode' lighter."
+  "Face used for `dired-async--modeline-mode' lighter."
   :group 'dired-async)
 
-(define-minor-mode dired-async-modeline-mode
+(define-minor-mode dired-async--modeline-mode
     "Notify mode-line that an async process run."
   :group 'dired-async
   :global t
   :lighter (:eval (propertize (format " [%s Async job(s) running]"
                                       (length (dired-async-processes)))
                               'face 'dired-async-mode-message))
-  (unless dired-async-modeline-mode
+  (unless dired-async--modeline-mode
     (let ((visible-bell t)) (ding))))
 
 (defun dired-async-mode-line-message (text &rest args)
@@ -119,14 +119,14 @@ This allow to turn off async features provided to this package."
          (proc (car (last processes))))
     (delete-process proc)
     (unless (> (length processes) 1)
-      (dired-async-modeline-mode -1))))
+      (dired-async--modeline-mode -1))))
 
 (defun dired-async-after-file-create (len-flist)
   "Callback function used for operation handled by `dired-create-file'."
   (unless (dired-async-processes)
     ;; Turn off mode-line notification
     ;; only when last process end.
-    (dired-async-modeline-mode -1))
+    (dired-async--modeline-mode -1))
   (when dired-async-operation
     (if (file-exists-p dired-async-log-file)
         (progn
@@ -261,10 +261,11 @@ ESC or `q' to not overwrite any of the remaining files,
                       ,(dired-async-maybe-kill-ftp))
                    callback)
       ;; Run mode-line notifications while process running.
-      (dired-async-modeline-mode 1)
+      (dired-async--modeline-mode 1)
       (setq dired-async-operation (list operation (length async-fn-list)))
       (message "%s proceeding asynchronously..." operation))))
 
+;;;###autoload
 (define-minor-mode dired-async-mode
     "Do dired actions asynchronously."
   :group 'helm
