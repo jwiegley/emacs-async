@@ -6,8 +6,8 @@
 
 Add to your `.emacs.el`:
 
-     (when (require 'dired-aux)
-       (require 'dired-async))
+    (autoload 'dired-async-mode "dired-async.el" nil t)
+    (dired-async-mode 1)
 
 This will allow you to run  asynchronously
 the dired commands for copying, renaming and symlinking.
@@ -16,8 +16,7 @@ to copy, rename etc... asynchronously from [helm](https://github.com/emacs-helm/
 Note that with [helm](https://github.com/emacs-helm/helm)
 you can disable this by running the copy, rename etc... commands with a prefix argument.
 
-If you don't want to make dired/helm asynchronous, you can either
-disable this with `dired-async-be-async` or just load `async.el`.
+If you don't want to make dired/helm asynchronous disable it with `dired-async-mode`.
 
 # Usage
 
