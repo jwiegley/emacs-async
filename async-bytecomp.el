@@ -53,6 +53,7 @@ the symbol `all', in this case packages are always compiled asynchronously."
 
 (defvar async-byte-compile-log-file "~/.emacs.d/async-bytecomp.log")
 
+;;;###autoload
 (defun async-byte-recompile-directory (directory &optional quiet)
   "Compile all *.el files in DIRECTORY asynchronously.
 All *.elc files are systematically deleted before proceeding."
@@ -143,6 +144,7 @@ All *.elc files are systematically deleted before proceeding."
           (async-byte-recompile-directory (package-desc-dir pkg-desc) t))
         ad-do-it)))
 
+;;;###autoload
 (define-minor-mode async-bytecomp-package-mode
     "Byte compile asynchronously packages installed with package.el.
 Async compilation of packages can be controlled by
