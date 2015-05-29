@@ -102,7 +102,7 @@ All *.elc files are systematically deleted before proceeding."
                 (erase-buffer)
                 (insert error-data))))))
      call-back)
-    (message "Started compiling asynchronously directory %s" directory)))
+    (unless quiet (message "Started compiling asynchronously directory %s" directory))))
 
 (defvar package-archive-contents)
 (declare-function package-desc-reqs "package.el" (cl-x))
