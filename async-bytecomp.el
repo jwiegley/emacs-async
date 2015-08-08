@@ -42,7 +42,8 @@
 (require 'cl-lib)
 (require 'async)
 
-(defcustom async-bytecomp-allowed-packages '(async helm helm-core helm-ls-git helm-ls-hg)
+(defcustom async-bytecomp-allowed-packages
+  '(async helm helm-core helm-ls-git helm-ls-hg magit)
   "Packages in this list will be compiled asynchronously by `package--compile'.
 All the dependencies of these packages will be compiled async too,
 so no need to add dependencies to this list.
