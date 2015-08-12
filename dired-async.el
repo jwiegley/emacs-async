@@ -74,7 +74,7 @@ Should take same args as `message'."
   :group 'dired-async)
 
 (defface dired-async-mode-message
-    '((t (:background "Firebrick1")))
+    '((t (:foreground "Gold")))
   "Face used for `dired-async--modeline-mode' lighter."
   :group 'dired-async)
 
