@@ -109,20 +109,21 @@ All *.elc files are systematically deleted before proceeding."
 (declare-function package-desc-reqs "package.el" (cl-x))
 
 (defun async-bytecomp--get-package-deps (pkg &optional only)
-  (let* ((pkg-desc (cadr (assq pkg package-archive-contents)))
-         (direct-deps (cl-loop for p in (package-desc-reqs pkg-desc)
-                               for name = (car p)
-                               when (assq name package-archive-contents)
-                               collect name))
-         (indirect-deps (unless (eq only 'direct)
-                          (delete-dups
-                           (cl-loop for p in direct-deps append
-                                    (async-bytecomp--get-package-deps p))))))
-    (cl-case only
-      (direct   direct-deps)
-      (separate (list direct-deps indirect-deps))
-      (indirect indirect-deps)
-      (t        (delete-dups (append direct-deps indirect-deps))))))
+  (when (assq pkg package-archive-contents)
+    (let* ((pkg-desc (cadr (assq pkg package-archive-contents)))
+           (direct-deps (cl-loop for p in (package-desc-reqs pkg-desc)
+                                 for name = (car p)
+                                 when (assq name package-archive-contents)
+                                 collect name))
+           (indirect-deps (unless (eq only 'direct)
+                            (delete-dups
+                             (cl-loop for p in direct-deps append
+                                      (async-bytecomp--get-package-deps p))))))
+      (cl-case only
+        (direct   direct-deps)
+        (separate (list direct-deps indirect-deps))
+        (indirect indirect-deps)
+        (t        (delete-dups (append direct-deps indirect-deps)))))))
 
 (defun async-bytecomp-get-allowed-pkgs ()
   (when (and async-bytecomp-allowed-packages
