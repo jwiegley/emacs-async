@@ -131,6 +131,7 @@ All *.elc files are systematically deleted before proceeding."
              (listp async-bytecomp-allowed-packages))
     (if package-archive-contents
         (cl-loop for p in async-bytecomp-allowed-packages
+                 when (assq p package-archive-contents)
                  append (async-bytecomp--get-package-deps p) into reqs
                  finally return
                  (delete-dups
