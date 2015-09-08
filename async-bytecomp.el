@@ -139,13 +139,17 @@ All *.elc files are systematically deleted before proceeding."
         async-bytecomp-allowed-packages)))
 
 (defadvice package--compile (around byte-compile-async)
-  (let ((cur-package (package-desc-name pkg-desc)))
+  (let ((cur-package (package-desc-name pkg-desc))
+        (pkg-dir (package-desc-dir pkg-desc)))
     (if (or (equal async-bytecomp-allowed-packages '(all))
             (memq cur-package (async-bytecomp-get-allowed-pkgs)))
         (progn
           (when (eq cur-package 'async)
             (fmakunbound 'async-byte-recompile-directory))
-          (load "async-bytecomp") ; emacs-24.3 don't reload new files.
+          (when (and (string= cur-package "async")
+                     (not (member pkg-dir load-path)))
+            (push pkg-dir load-path))
+          (load "async-bytecomp")
           (async-byte-recompile-directory (package-desc-dir pkg-desc) t))
         ad-do-it)))
 
