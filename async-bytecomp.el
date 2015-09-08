@@ -144,7 +144,6 @@ All *.elc files are systematically deleted before proceeding."
         (progn
           (when (eq cur-package 'async)
             (fmakunbound 'async-byte-recompile-directory))
-          (package-activate-1 pkg-desc)
           (load "async-bytecomp") ; emacs-24.3 don't reload new files.
           (async-byte-recompile-directory (package-desc-dir pkg-desc) t))
         ad-do-it)))
