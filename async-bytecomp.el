@@ -146,10 +146,13 @@ All *.elc files are systematically deleted before proceeding."
         (progn
           (when (eq cur-package 'async)
             (fmakunbound 'async-byte-recompile-directory))
-          (when (and (string= cur-package "async")
-                     (not (member pkg-dir load-path)))
-            (push pkg-dir load-path))
-          (load "async-bytecomp")
+          ;; Add to `load-path' the latest version of async and
+          ;; reload it when reinstalling async.
+          (when (string= cur-package "async")
+            (cl-pushnew pkg-dir load-path)
+            (load "async-bytecomp"))
+          ;; `async-byte-recompile-directory' will add directory
+          ;; as needed to `load-path'.
           (async-byte-recompile-directory (package-desc-dir pkg-desc) t))
         ad-do-it)))
 
