@@ -27,15 +27,15 @@
 ;;; Commentary:
 
 ;; This file provide a redefinition of `dired-create-file' function,
-;; which must be loaded *after* dired-aux.el, performs copies,
-;; moves and all what is handled by `dired-create-file' in the background
-;; using a slave Emacs process, by means of the async.el module.
+;; performs copies, moves and all what is handled by `dired-create-file'
+;; in the background using a slave Emacs process,
+;; by means of the async.el module.
 ;; To use it, put this in your .emacs:
-;;
-;;   (eval-after-load "dired-aux"
-;;     '(require 'dired-async))
-;;
-;;
+
+;;     (dired-async-mode 1)
+
+;; This will enable async copy/rename etc...
+;; in dired and helm.
 
 ;;; Code:
 
