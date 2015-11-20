@@ -151,10 +151,10 @@ Should take same args as `message'."
 
 See `dired-create-files' for the behavior of arguments."
   (setq dired-async-operation nil)
-  (let (dired-create-files-failures failures async-fn-list
-                                    skipped (success-count 0) (total (length fn-list))
-                                    (callback `(lambda (&optional ignore)
-                                                 (dired-async-after-file-create ,(length fn-list)))))
+  (let (dired-create-files-failures
+        failures async-fn-list
+        skipped (success-count 0) (total (length fn-list))
+        callback)
     (let (to overwrite-query
              overwrite-backup-query)    ; for dired-handle-overwrite
       (dolist (from fn-list)
@@ -215,7 +215,14 @@ ESC or `q' to not overwrite any of the remaining files,
                         (push (dired-make-relative from) failures)
                         (dired-log "%s `%s' to `%s' failed"
                                    operation from to)))
-                  (push (cons from to) async-fn-list))))))
+                  (push (cons from to) async-fn-list)))))
+      (setq callback
+            `(lambda (&optional ignore)
+               (dired-async-after-file-create ,(length fn-list))
+               (cl-loop for (file . to) in ',async-fn-list
+                 do (and (get-file-buffer file)
+                         (with-current-buffer (get-file-buffer file)
+                           (set-visited-file-name to nil t)))))))
     ;; Handle error happening in host emacs.
     (cond
       (dired-create-files-failures
