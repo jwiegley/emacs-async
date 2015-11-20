@@ -1,4 +1,4 @@
-;;; smtpmail-async --- Send e-mail with smtpmail.el asynchronously
+;;; smtpmail-async.el --- Send e-mail with smtpmail.el asynchronously
 
 ;; Copyright (C) 2012~2014 John Wiegley
 

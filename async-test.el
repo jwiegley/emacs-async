@@ -1,4 +1,4 @@
-;;; async-test --- async.el-related tests
+;;; async-test.el --- async.el-related tests
 
 ;; Copyright (C) 2012~2014 John Wiegley
 

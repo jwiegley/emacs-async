@@ -1,4 +1,4 @@
-;;; async --- Asynchronous processing in Emacs
+;;; async.el --- Asynchronous processing in Emacs
 
 ;; Copyright (C) 2012~2014 John Wiegley
 
