@@ -219,10 +219,11 @@ ESC or `q' to not overwrite any of the remaining files,
       (setq callback
             `(lambda (&optional ignore)
                (dired-async-after-file-create ,(length fn-list))
-               (cl-loop for (file . to) in ',async-fn-list
-                 do (and (get-file-buffer file)
-                         (with-current-buffer (get-file-buffer file)
-                           (set-visited-file-name to nil t)))))))
+               (when (string= ,operation "rename")
+                 (cl-loop for (file . to) in ',async-fn-list
+                          do (and (get-file-buffer file)
+                                  (with-current-buffer (get-file-buffer file)
+                                    (set-visited-file-name to nil t))))))))
     ;; Handle error happening in host emacs.
     (cond
       (dired-create-files-failures
