@@ -153,7 +153,8 @@ See `dired-create-files' for the behavior of arguments."
   (setq dired-async-operation nil)
   (let (dired-create-files-failures
         failures async-fn-list
-        skipped (success-count 0) (total (length fn-list))
+        skipped (success-count 0)
+        (total (length fn-list))
         callback)
     (let (to overwrite-query
              overwrite-backup-query)    ; for dired-handle-overwrite
@@ -218,8 +219,8 @@ ESC or `q' to not overwrite any of the remaining files,
                   (push (cons from to) async-fn-list)))))
       (setq callback
             `(lambda (&optional ignore)
-               (dired-async-after-file-create ,(length fn-list))
-               (when (string= ,operation "rename")
+               (dired-async-after-file-create ,total)
+               (when (string= ,(downcase operation) "rename")
                  (cl-loop for (file . to) in ',async-fn-list
                           do (and (get-file-buffer file)
                                   (with-current-buffer (get-file-buffer file)
