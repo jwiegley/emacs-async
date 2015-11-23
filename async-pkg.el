@@ -1,6 +1,6 @@
 ;;; async-pkg.el
 
-(define-package "async" "1.4"
+(define-package "async" "1.6"
   "Asynchronous processing in Emacs"
   '((emacs "24")
     (cl-lib "0.5"))
