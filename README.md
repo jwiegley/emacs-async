@@ -9,6 +9,8 @@
 
 # Install
 
+## Install dired-async
+
 Add to your `.emacs.el`:
 
     (autoload 'dired-async-mode "dired-async.el" nil t)
@@ -22,6 +24,23 @@ Note that with [helm](https://github.com/emacs-helm/helm)
 you can disable this by running the copy, rename etc... commands with a prefix argument.
 
 If you don't want to make dired/helm asynchronous disable it with `dired-async-mode`.
+
+## Enable asynchronous compilation of your (M)elpa packages
+
+By default emacs package.el compile packages in its running emacs session.
+This is not a problem when installing a new package (which is not actually loaded in current emacs)
+but it may create errors and bad compilation when upgrading a package (old version of package is already loaded
+and running in current emacs).
+You can remedy to this by allowing async to compile your packages asynchronously,
+(helm and magit actually do this by default,
+so if you are using these packages they will compile asynchronously)
+to do this, add to your init file:
+    
+    (async-bytecomp-package-mode 1)
+
+
+You can control which packages will compile async with `async-bytecomp-allowed-packages`.
+Set it to `'(all)` to be sure you will compile all packages asynchronously.
 
 # Usage
 
