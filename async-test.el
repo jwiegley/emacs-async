@@ -30,7 +30,7 @@
 ;;; Code:
 
 (require 'async)
-(require 'async-file)
+
 
 (eval-when-compile
   (require 'cl))
