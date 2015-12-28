@@ -42,6 +42,7 @@
 (defvar async-callback-value nil)
 (defvar async-callback-value-set nil)
 (defvar async-current-process nil)
+(defvar async--procvar nil)
 
 (defun async-inject-variables
   (include-regexp &optional predicate exclude-regexp)
@@ -214,7 +215,7 @@ working directory."
       proc)))
 
 ;;;###autoload
-(defmacro async-start (start-func &optional finish-func)
+(defun async-start (start-func &optional finish-func)
   "Execute START-FUNC (often a lambda) in a subordinate Emacs process.
 When done, the return value is passed to FINISH-FUNC.  Example:
 
@@ -262,27 +263,26 @@ passed to FINISH-FUNC).  Call `async-get' on such a future always
 returns nil.  It can still be useful, however, as an argument to
 `async-ready' or `async-wait'."
   (require 'find-func)
-  (let ((procvar (make-symbol "proc")))
-    `(let* ((sexp ,start-func)
-            (,procvar
-             (async-start-process
-              "emacs" (file-truename
-                       (expand-file-name invocation-name
-                                         invocation-directory))
-              ,finish-func
-              "-Q" "-l"
-              ;; Using `locate-library' ensure we use the right file
-              ;; when the .elc have been deleted.
-              ,(locate-library "async")
-              "-batch" "-f" "async-batch-invoke"
-              (if async-send-over-pipe
-                  "<none>"
-                (with-temp-buffer
-                  (async--insert-sexp (list 'quote sexp))
-                  (buffer-string))))))
-       (if async-send-over-pipe
-           (async--transmit-sexp ,procvar (list 'quote sexp)))
-       ,procvar)))
+  (let ((sexp start-func))
+    (setq async--procvar
+          (async-start-process
+           "emacs" (file-truename
+                    (expand-file-name invocation-name
+                                      invocation-directory))
+           finish-func
+           "-Q" "-l"
+           ;; Using `locate-library' ensure we use the right file
+           ;; when the .elc have been deleted.
+           (locate-library "async")
+           "-batch" "-f" "async-batch-invoke"
+           (if async-send-over-pipe
+               "<none>"
+               (with-temp-buffer
+                 (async--insert-sexp (list 'quote sexp))
+                 (buffer-string)))))
+    (if async-send-over-pipe
+        (async--transmit-sexp async--procvar (list 'quote sexp)))
+    async--procvar))
 
 (defmacro async-sandbox(func)
   "Evaluate FUNC in a separate Emacs process, synchronously."
