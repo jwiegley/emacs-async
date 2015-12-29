@@ -262,7 +262,6 @@ returned except that it yields no value (since the value is
 passed to FINISH-FUNC).  Call `async-get' on such a future always
 returns nil.  It can still be useful, however, as an argument to
 `async-ready' or `async-wait'."
-  (require 'find-func)
   (let ((sexp start-func))
     (setq async--procvar
           (async-start-process
