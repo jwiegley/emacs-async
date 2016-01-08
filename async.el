@@ -121,7 +121,9 @@ as follows:
 
 (defun async--receive-sexp (&optional stream)
   (let ((sexp (decode-coding-string (base64-decode-string
-                                     (read stream)) 'utf-8-unix)))
+                                     (read stream)) 'utf-8-unix))
+	;; Parent expects UTF-8 encoded text.
+	(coding-system-for-write 'utf-8-unix))
     (if async-debug
         (message "Received sexp {{{%s}}}" (pp-to-string sexp)))
     (setq sexp (read sexp))
@@ -130,7 +132,10 @@ as follows:
     (eval sexp)))
 
 (defun async--insert-sexp (sexp)
-  (let (print-level print-length)
+  (let (print-level
+	print-length
+	(print-escape-nonascii t)
+	(print-circle t))
     (prin1 sexp (current-buffer))
     ;; Just in case the string we're sending might contain EOF
     (encode-coding-region (point-min) (point-max) 'utf-8-unix)
@@ -147,18 +152,21 @@ as follows:
 
 (defun async-batch-invoke ()
   "Called from the child Emacs process' command-line."
-  (setq async-in-child-emacs t
-        debug-on-error async-debug)
-  (if debug-on-error
-      (prin1 (funcall
-              (async--receive-sexp (unless async-send-over-pipe
-                                     command-line-args-left))))
-    (condition-case err
-        (prin1 (funcall
-                (async--receive-sexp (unless async-send-over-pipe
-                                       command-line-args-left))))
-      (error
-       (prin1 (list 'async-signal err))))))
+  ;; Make sure 'message' and 'prin1' encode stuff in UTF-8, as parent
+  ;; process expects.
+  (let ((coding-system-for-write 'utf-8-unix))
+    (setq async-in-child-emacs t
+	  debug-on-error async-debug)
+    (if debug-on-error
+	(prin1 (funcall
+		(async--receive-sexp (unless async-send-over-pipe
+				       command-line-args-left))))
+      (condition-case err
+	  (prin1 (funcall
+		  (async--receive-sexp (unless async-send-over-pipe
+					 command-line-args-left))))
+	(error
+	 (prin1 (list 'async-signal err)))))))
 
 (defun async-ready (future)
   "Query a FUTURE to see if the ready is ready -- i.e., if no blocking
@@ -263,7 +271,9 @@ returned except that it yields no value (since the value is
 passed to FINISH-FUNC).  Call `async-get' on such a future always
 returns nil.  It can still be useful, however, as an argument to
 `async-ready' or `async-wait'."
-  (let ((sexp start-func))
+  (let ((sexp start-func)
+	;; Subordinate Emacs will send text encoded in UTF-8.
+	(coding-system-for-read 'utf-8-unix))
     (setq async--procvar
           (async-start-process
            "emacs" (file-truename
