@@ -106,6 +106,7 @@ All *.elc files are systematically deleted before proceeding."
     (unless quiet (message "Started compiling asynchronously directory %s" directory))))
 
 (defvar package-archive-contents)
+(defvar package-alist)
 (declare-function package-desc-reqs "package.el" (cl-x))
 
 (defun async-bytecomp--get-package-deps (pkg &optional only)
