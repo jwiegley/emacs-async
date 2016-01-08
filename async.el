@@ -1,9 +1,10 @@
 ;;; async.el --- Asynchronous processing in Emacs
 
-;; Copyright (C) 2012~2014 John Wiegley
+;; Copyright (C) 2012-2016 Free Software Foundation, Inc.
 
 ;; Author: John Wiegley <jwiegley@gmail.com>
 ;; Created: 18 Jun 2012
+;; Version: 1.6
 
 ;; Keywords: async
 ;; X-URL: https://github.com/jwiegley/emacs-async

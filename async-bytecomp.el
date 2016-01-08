@@ -1,7 +1,6 @@
 ;;; async-bytecomp.el --- Async functions to compile elisp files async
 
-;; Copyright (C) 2014 John Wiegley
-;; Copyright (C) 2014 Thierry Volpiatto
+;; Copyright (C) 2014-2016 Free Software Foundation, Inc.
 
 ;; Authors: John Wiegley <jwiegley@gmail.com>
 ;;          Thierry Volpiatto <thierry.volpiatto@gmail.com>

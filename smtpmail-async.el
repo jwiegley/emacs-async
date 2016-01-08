@@ -1,6 +1,6 @@
 ;;; smtpmail-async.el --- Send e-mail with smtpmail.el asynchronously
 
-;; Copyright (C) 2012~2014 John Wiegley
+;; Copyright (C) 2012-2016 Free Software Foundation, Inc.
 
 ;; Author: John Wiegley <jwiegley@gmail.com>
 ;; Created: 18 Jun 2012
