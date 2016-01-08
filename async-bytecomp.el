@@ -111,10 +111,15 @@ All *.elc files are systematically deleted before proceeding."
 (defun async-bytecomp--get-package-deps (pkg &optional only)
   ;; Same as `package--get-deps' but parse instead `package-archive-contents'
   ;; because PKG is not already installed and not present in `package-alist'.
-  (let* ((pkg-desc (cadr (assq pkg package-archive-contents)))
+  ;; However fallback to `package-alist' in case PKG no more present
+  ;; in `package-archive-contents' due to modification to `package-archives'.
+  ;; See issue #58.
+  (let* ((pkg-desc (cadr (or (assq pkg package-archive-contents)
+                             (assq pkg package-alist))))
          (direct-deps (cl-loop for p in (package-desc-reqs pkg-desc)
                                for name = (car p)
-                               when (assq name package-archive-contents)
+                               when (or (assq name package-archive-contents)
+                                        (assq name package-alist))
                                collect name))
          (indirect-deps (unless (eq only 'direct)
                           (delete-dups
