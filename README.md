@@ -25,6 +25,10 @@ you can disable this by running the copy, rename etc... commands with a prefix a
 
 If you don't want to make dired/helm asynchronous disable it with `dired-async-mode`.
 
+### Debian and Ubuntu
+
+Users of Debian 9 or later or Ubuntu 16.04 or later may simply `apt-get install elpa-async`.
+
 ## Enable asynchronous compilation of your (M)elpa packages
 
 By default emacs package.el compile packages in its running emacs session.
