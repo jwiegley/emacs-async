@@ -166,7 +166,8 @@ See `dired-create-files' for the behavior of arguments."
                          (downcase operation) from)))
         (if (not to)
             (setq skipped (cons (dired-make-relative from) skipped))
-            (let* ((overwrite (file-exists-p to))
+            (let* ((overwrite (and (null (eq file-creator 'backup-file))
+                                   (file-exists-p to)))
                    (dired-overwrite-confirmed ; for dired-handle-overwrite
                     (and overwrite
                          (let ((help-form '(format "\
@@ -255,8 +256,21 @@ ESC or `q' to not overwrite any of the remaining files,
                       ,(async-inject-variables dired-async-env-variables-regexp)
                       (condition-case err
                           (let ((dired-recursive-copies (quote always)))
-                            (cl-loop for (f . d) in (quote ,async-fn-list)
-                                     do (funcall (quote ,file-creator) f d t)))
+                            (defalias 'backup-file
+                                ;; Same feature as "cp --backup=numbered from to"
+                                (lambda (from to ok)
+                                  (when (null (nth 0 (file-attributes from)))
+                                    (let ((count 0))
+                                      (while (let ((attrs (file-attributes to)))
+                                               (and attrs
+                                                    (null (nth 0 (file-attributes to)))))
+                                        (cl-incf count)
+                                        (setq to (concat (file-name-sans-versions to)
+                                                         (format ".~%s~" count)))))
+                                    (copy-file from to ok dired-copy-preserve-time))))
+                            (cl-loop with fn = (quote ,file-creator)
+                                     for (from . dest) in (quote ,async-fn-list)
+                                     do (funcall fn from dest t)))
                         (file-error
                          (with-temp-file ,dired-async-log-file
                            (insert (format "%S" err)))))
