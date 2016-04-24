@@ -256,18 +256,28 @@ ESC or `q' to not overwrite any of the remaining files,
                       ,(async-inject-variables dired-async-env-variables-regexp)
                       (condition-case err
                           (let ((dired-recursive-copies (quote always)))
+                            ;; Inline `backup-file' as long as it is not
+                            ;; available in emacs.
                             (defalias 'backup-file
                                 ;; Same feature as "cp --backup=numbered from to"
+                                ;; Symlinks are copied as file from source unlike
+                                ;; `dired-copy-file' which is same as cp -d.
                                 (lambda (from to ok)
-                                  (when (null (nth 0 (file-attributes from)))
-                                    (let ((count 0))
-                                      (while (let ((attrs (file-attributes to)))
-                                               (and attrs
-                                                    (null (nth 0 (file-attributes to)))))
-                                        (cl-incf count)
-                                        (setq to (concat (file-name-sans-versions to)
-                                                         (format ".~%s~" count)))))
-                                    (copy-file from to ok dired-copy-preserve-time))))
+                                  (cond ((eq t (nth 0 (file-attributes from))) (ignore))
+                                        (t (let ((count 0))
+                                             (while (let ((attrs (file-attributes to)))
+                                                      (and attrs
+                                                           (null (nth 0 (file-attributes to)))))
+                                               (cl-incf count)
+                                               (setq to (concat (file-name-sans-versions to)
+                                                                (format ".~%s~" count)))))
+                                           (condition-case err
+                                               (copy-file from to ok dired-copy-preserve-time)
+                                             (file-date-error
+                                              (push (dired-make-relative from)
+                                                    dired-create-files-failures)
+                                              (dired-log "Can't set date on %s:\n%s\n" from err)))))))
+                            ;; Now run the FILE-CREATOR function on files.
                             (cl-loop with fn = (quote ,file-creator)
                                      for (from . dest) in (quote ,async-fn-list)
                                      do (funcall fn from dest t)))
