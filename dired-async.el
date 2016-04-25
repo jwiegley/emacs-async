@@ -263,11 +263,10 @@ ESC or `q' to not overwrite any of the remaining files,
                                 ;; Symlinks are copied as file from source unlike
                                 ;; `dired-copy-file' which is same as cp -d.
                                 (lambda (from to ok)
-                                  (cond ((eq t (nth 0 (file-attributes from))) (ignore))
+                                  (cond ((file-directory-p from) (ignore))
                                         (t (let ((count 0))
                                              (while (let ((attrs (file-attributes to)))
-                                                      (and attrs
-                                                           (null (nth 0 (file-attributes to)))))
+                                                      (and attrs (null (nth 0 attrs))))
                                                (cl-incf count)
                                                (setq to (concat (file-name-sans-versions to)
                                                                 (format ".~%s~" count)))))
