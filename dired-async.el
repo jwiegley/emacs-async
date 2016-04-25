@@ -262,6 +262,7 @@ ESC or `q' to not overwrite any of the remaining files,
                                 ;; Same feature as "cp --backup=numbered from to"
                                 ;; Symlinks are copied as file from source unlike
                                 ;; `dired-copy-file' which is same as cp -d.
+                                ;; Directories are omitted.
                                 (lambda (from to ok)
                                   (cond ((file-directory-p from) (ignore))
                                         (t (let ((count 0))
