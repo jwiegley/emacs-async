@@ -110,7 +110,7 @@ Should take same args as `message'."
   (interactive)
   (let* ((processes (dired-async-processes))
          (proc (car (last processes))))
-    (delete-process proc)
+    (and proc (delete-process proc))
     (unless (> (length processes) 1)
       (dired-async--modeline-mode -1))))
 
