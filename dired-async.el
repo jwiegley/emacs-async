@@ -255,7 +255,9 @@ ESC or `q' to not overwrite any of the remaining files,
                       (require 'cl-lib) (require 'dired-aux) (require 'dired-x)
                       ,(async-inject-variables dired-async-env-variables-regexp)
                       (condition-case err
-                          (let ((dired-recursive-copies (quote always)))
+                          (let ((dired-recursive-copies (quote always))
+                                (dired-copy-preserve-time
+                                 ,dired-copy-preserve-time))
                             ;; Inline `backup-file' as long as it is not
                             ;; available in emacs.
                             (defalias 'backup-file
