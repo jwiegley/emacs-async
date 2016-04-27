@@ -153,7 +153,6 @@ See `dired-create-files' for the behavior of arguments."
   (setq dired-async-operation nil)
   (setq overwrite-query nil)
   (let ((total (length fn-list))
-        dired-create-files-failures
         failures async-fn-list skipped callback)
     (let (to)
       (dolist (from fn-list)
@@ -218,27 +217,18 @@ ESC or `q' to not overwrite any of the remaining files,
                                   (with-current-buffer (get-file-buffer file)
                                     (set-visited-file-name to nil t))))))))
     ;; Handle error happening in host emacs.
-    (cond
-      (dired-create-files-failures
-       (setq failures (nconc failures dired-create-files-failures))
-       (dired-log-summary
-        (format "%s failed for %d file%s in %d requests"
-                operation (length failures)
-                (dired-plural-s (length failures))
-                total)
-        failures))
-      (failures
-       (dired-log-summary
-        (format "%s failed for %d of %d file%s"
-                operation (length failures)
-                total (dired-plural-s total))
-        failures))
-      (skipped
-       (dired-log-summary
-        (format "%s: %d of %d file%s skipped"
-                operation (length skipped) total
-                (dired-plural-s total))
-        skipped)))
+    (cond (failures
+           (dired-log-summary
+            (format "%s failed for %d of %d file%s"
+                    operation (length failures)
+                    total (dired-plural-s total))
+            failures))
+          (skipped
+           (dired-log-summary
+            (format "%s: %d of %d file%s skipped"
+                    operation (length skipped) total
+                    (dired-plural-s total))
+            skipped)))
     ;; Start async process.
     (when async-fn-list
       (async-start `(lambda ()
