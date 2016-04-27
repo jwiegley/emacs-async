@@ -1,4 +1,4 @@
-;;; async-bytecomp.el --- Async functions to compile elisp files async
+;;; async-bytecomp.el --- Compile elisp files asynchronously -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2014-2016 Free Software Foundation, Inc.
 

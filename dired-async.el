@@ -1,4 +1,4 @@
-;;; dired-async.el --- Copy/move/delete asynchronously in dired.
+;;; dired-async.el --- Asynchronous dired actions -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012-2016 Free Software Foundation, Inc.
 
@@ -144,19 +144,18 @@ Should take same args as `message'."
                                        (buffer-name b)) b))))
        (when buf (kill-buffer buf))))))
 
+(defvar overwrite-query)
 (defun dired-async-create-files (file-creator operation fn-list name-constructor
-                                 &optional marker-char)
+                                 &optional _marker-char)
   "Same as `dired-create-files' but asynchronous.
 
 See `dired-create-files' for the behavior of arguments."
   (setq dired-async-operation nil)
-  (let (dired-create-files-failures
-        failures async-fn-list
-        skipped (success-count 0)
-        (total (length fn-list))
-        callback)
-    (let (to overwrite-query
-             overwrite-backup-query)    ; for dired-handle-overwrite
+  (setq overwrite-query nil)
+  (let ((total (length fn-list))
+        dired-create-files-failures
+        failures async-fn-list skipped callback)
+    (let (to)
       (dolist (from fn-list)
         (setq to (funcall name-constructor from))
         (if (equal to from)
@@ -175,14 +174,7 @@ Type SPC or `y' to overwrite file `%s',
 DEL or `n' to skip to next,
 ESC or `q' to not overwrite any of the remaining files,
 `!' to overwrite all remaining files with no more questions." to)))
-                           (dired-query 'overwrite-query
-                                        "Overwrite `%s'?" to))))
-                   ;; must determine if FROM is marked before file-creator
-                   ;; gets a chance to delete it (in case of a move).
-                   (actual-marker-char
-                    (cond  ((integerp marker-char) marker-char)
-                           (marker-char (dired-file-marker from)) ; slow
-                           (t nil))))
+                           (dired-query 'overwrite-query "Overwrite `%s'?" to)))))
               ;; Handle the `dired-copy-file' file-creator specially
               ;; When copying a directory to another directory or
               ;; possibly to itself or one of its subdirectories.
@@ -246,9 +238,7 @@ ESC or `q' to not overwrite any of the remaining files,
         (format "%s: %d of %d file%s skipped"
                 operation (length skipped) total
                 (dired-plural-s total))
-        skipped))
-      (t (message "%s: %s file%s"
-                  operation success-count (dired-plural-s success-count))))
+        skipped)))
     ;; Start async process.
     (when async-fn-list
       (async-start `(lambda ()
@@ -258,6 +248,7 @@ ESC or `q' to not overwrite any of the remaining files,
                           (let ((dired-recursive-copies (quote always))
                                 (dired-copy-preserve-time
                                  ,dired-copy-preserve-time))
+                            (setq overwrite-backup-query nil)
                             ;; Inline `backup-file' as long as it is not
                             ;; available in emacs.
                             (defalias 'backup-file

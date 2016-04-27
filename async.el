@@ -1,4 +1,4 @@
-;;; async.el --- Asynchronous processing in Emacs
+;;; async.el --- Asynchronous processing in Emacs -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012-2016 Free Software Foundation, Inc.
 
@@ -95,8 +95,8 @@ as follows:
       (unless async-debug
         (kill-buffer buf)))))
 
-(defun async-when-done (proc &optional change)
-  "Process sentinal used to retrieve the value from the child process."
+(defun async-when-done (proc &optional _change)
+  "Process sentinel used to retrieve the value from the child process."
   (when (eq 'exit (process-status proc))
     (with-current-buffer (process-buffer proc)
       (let ((async-current-process proc))
@@ -201,7 +201,7 @@ its FINISH-FUNC is nil."
             (funcall async-callback args))
       (async--transmit-sexp (car args) (list 'quote (cdr args))))))
 
-(defun async-receive (&rest args)
+(defun async-receive ()
   "Send the given messages to the asychronous Emacs PROCESS."
   (async--receive-sexp))
 
