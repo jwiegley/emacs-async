@@ -213,9 +213,9 @@ ESC or `q' to not overwrite any of the remaining files,
                (dired-async-after-file-create ,total)
                (when (string= ,(downcase operation) "rename")
                  (cl-loop for (file . to) in ',async-fn-list
-                          do (and (get-file-buffer file)
-                                  (with-current-buffer (get-file-buffer file)
-                                    (set-visited-file-name to nil t))))))))
+                          for bf = (get-file-buffer file)
+                          do (and bf (with-current-buffer bf
+                                       (set-visited-file-name to nil t))))))))
     ;; Handle error happening in host emacs.
     (cond (failures
            (dired-log-summary
