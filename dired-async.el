@@ -141,13 +141,13 @@ Should take same args as `message'."
                   (funcall dired-async-message-function
                            "%s failed for %d of %d file%s"
                            'dired-async-failures
-                           operation (length failures)
+                           (car operation) (length failures)
                            total (dired-plural-s total)))
                  (skipped
                   (funcall dired-async-message-function
                            "%s: %d of %d file%s skipped"
                            'dired-async-failures
-                           operation (length skipped) total
+                           (car operation) (length skipped) total
                            (dired-plural-s total))))
            ;; Finally send the success message.
            (funcall dired-async-message-function
