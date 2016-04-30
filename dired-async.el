@@ -229,6 +229,23 @@ ESC or `q' to not overwrite any of the remaining files,
                         (dired-log "%s `%s' to `%s' failed"
                                    operation from to)))
                   (push (cons from to) async-fn-list)))))
+      ;; When async-fn-list is empty that's mean only one file
+      ;; had to be copied and user finally answer NO.
+      ;; In this case async process will never start and callback
+      ;; will have no chance to run, so notify failures here.
+      (unless async-fn-list
+        (cond (failures
+               (funcall dired-async-message-function
+                        "%s failed for %d of %d file%s"
+                        'dired-async-failures
+                        operation (length failures)
+                        total (dired-plural-s total)))
+              (skipped
+               (funcall dired-async-message-function
+                        "%s: %d of %d file%s skipped"
+                        'dired-async-failures
+                        operation (length skipped) total
+                        (dired-plural-s total)))))
       ;; Setup callback.
       (setq callback
             (lambda (&optional _ignore)
