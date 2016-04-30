@@ -137,17 +137,18 @@ Should take same args as `message'."
          0.1 nil
          (lambda ()
            ;; First send error messages.
-           (apply dired-async-message-function
-                  (cond (failures
-                         (list "%s failed for %d of %d file%s"
-                               'dired-async-failures
-                               (car operation) (length failures)
-                               total (dired-plural-s total)))
-                        (skipped
-                         (list "%s: %d of %d file%s skipped"
-                               'dired-async-failures
-                               (car operation) (length skipped) total
-                               (dired-plural-s total)))))
+           (cond (failures
+                  (funcall dired-async-message-function
+                           "%s failed for %d of %d file%s"
+                           'dired-async-failures
+                           (car operation) (length failures)
+                           total (dired-plural-s total)))
+                 (skipped
+                  (funcall dired-async-message-function
+                           "%s: %d of %d file%s skipped"
+                           'dired-async-failures
+                           (car operation) (length skipped) total
+                           (dired-plural-s total))))
            ;; Finally send the success message.
            (funcall dired-async-message-function
                     "Asynchronous %s of %s file(s) on %s file(s) done"
@@ -233,17 +234,18 @@ ESC or `q' to not overwrite any of the remaining files,
       ;; In this case async process will never start and callback
       ;; will have no chance to run, so notify failures here.
       (unless async-fn-list
-        (apply dired-async-message-function
-               (cond (failures
-                      (list "%s failed for %d of %d file%s"
-                            'dired-async-failures
-                            operation (length failures)
-                            total (dired-plural-s total)))
-                     (skipped
-                      (list "%s: %d of %d file%s skipped"
-                            'dired-async-failures
-                            operation (length skipped) total
-                            (dired-plural-s total))))))
+        (cond (failures
+               (funcall dired-async-message-function
+                        "%s failed for %d of %d file%s"
+                        'dired-async-failures
+                        operation (length failures)
+                        total (dired-plural-s total)))
+              (skipped
+               (funcall dired-async-message-function
+                        "%s: %d of %d file%s skipped"
+                        'dired-async-failures
+                        operation (length skipped) total
+                        (dired-plural-s total)))))
       ;; Setup callback.
       (setq callback
             (lambda (&optional _ignore)
