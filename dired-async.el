@@ -281,7 +281,6 @@ ESC or `q' to not overwrite any of the remaining files,
                    callback)
       ;; Run mode-line notifications while process running.
       (dired-async--modeline-mode 1)
-      ;; (setq dired-async-operation (list operation (length async-fn-list)))
       (message "%s proceeding asynchronously..." operation))))
 
 (defadvice dired-create-files (around dired-async)
