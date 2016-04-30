@@ -209,10 +209,10 @@ ESC or `q' to not overwrite any of the remaining files,
                                    operation from to)))
                   (push (cons from to) async-fn-list)))))
       (setq callback
-            `(lambda (&optional ignore)
-               (dired-async-after-file-create ,total)
-               (when (string= ,(downcase operation) "rename")
-                 (cl-loop for (file . to) in ',async-fn-list
+            (lambda (&optional _ignore)
+               (dired-async-after-file-create total)
+               (when (string= (downcase operation) "rename")
+                 (cl-loop for (file . to) in async-fn-list
                           for bf = (get-file-buffer file)
                           do (and bf (with-current-buffer bf
                                        (set-visited-file-name to nil t))))))))

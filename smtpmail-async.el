@@ -65,8 +65,8 @@ It is called just before calling `smtpmail-send-it'.")
             nil "\\`\\(mail-header-format-function\\|smtpmail-address-buffer\\|mail-mode-abbrev-table\\)")
           (run-hooks 'async-smtpmail-before-send-hook)
           (smtpmail-send-it)))
-     `(lambda (&optional ignore)
-        (message "Delivering message to %s...done" ,to)))))
+     (lambda (&optional _ignore)
+       (message "Delivering message to %s...done" to)))))
 
 (provide 'smtpmail-async)
 
