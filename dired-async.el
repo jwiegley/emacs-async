@@ -153,9 +153,10 @@ Should take same args as `message'."
                            (dired-plural-s total))))
            ;; Finally send the success message.
            (funcall dired-async-message-function
-                    "Asynchronous %s of %s file(s) on %s file(s) done"
+                    "Asynchronous %s of %s on %s file%s done"
                     'dired-async-message
-                    (car operation) (cadr operation) total))))))
+                    (car operation) (cadr operation)
+                    total (dired-plural-s total)))))))
 
 (defun dired-async-maybe-kill-ftp ()
   "Return a form to kill ftp process in child emacs."
