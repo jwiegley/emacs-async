@@ -255,8 +255,10 @@ ESC or `q' to not overwrite any of the remaining files,
                (when (string= (downcase operation) "rename")
                  (cl-loop for (file . to) in async-fn-list
                           for bf = (get-file-buffer file)
-                          do (and bf (with-current-buffer bf
-                                       (set-visited-file-name to nil t))))))))
+                          for destp = (file-exists-p to)
+                          do (and bf destp
+                                  (with-current-buffer bf
+                                    (set-visited-file-name to nil t))))))))
     ;; Start async process.
     (when async-fn-list
       (async-start `(lambda ()
@@ -285,16 +287,17 @@ ESC or `q' to not overwrite any of the remaining files,
                                            (condition-case err
                                                (copy-file from to ok dired-copy-preserve-time)
                                              (file-date-error
-                                              (push (dired-make-relative from)
-                                                    dired-create-files-failures)
                                               (dired-log "Can't set date on %s:\n%s\n" from err)))))))
                             ;; Now run the FILE-CREATOR function on files.
                             (cl-loop with fn = (quote ,file-creator)
                                      for (from . dest) in (quote ,async-fn-list)
                                      do (funcall fn from dest t)))
                         (file-error
-                         (with-temp-file ,dired-async-log-file
-                           (insert (format "%S" err)))))
+                         (dired-log "%s: %s\n" (car err) (cdr err))
+                         (dired-log t)
+                         (with-current-buffer dired-log-buffer
+                           (write-region (point-min) (point-max)
+                                         ,dired-async-log-file))))
                       ,(dired-async-maybe-kill-ftp))
                    callback)
       ;; Run mode-line notifications while process running.
