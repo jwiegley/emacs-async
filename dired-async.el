@@ -228,6 +228,8 @@ ESC or `q' to not overwrite any of the remaining files,
                         (dired-log "%s `%s' to `%s' failed\n"
                                    operation from to)))
                   (push (cons from to) async-fn-list)))))
+      ;; When failures have been printed to dired log add the date at bob.
+      (when (or failures skipped) (dired-log t))
       ;; When async-fn-list is empty that's mean only one file
       ;; had to be copied and user finally answer NO.
       ;; In this case async process will never start and callback
