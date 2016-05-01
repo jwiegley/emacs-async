@@ -226,7 +226,7 @@ ESC or `q' to not overwrite any of the remaining files,
                            (push (cons from to) async-fn-list))
                       (progn
                         (push (dired-make-relative from) failures)
-                        (dired-log "%s `%s' to `%s' failed"
+                        (dired-log "%s `%s' to `%s' failed\n"
                                    operation from to)))
                   (push (cons from to) async-fn-list)))))
       ;; When async-fn-list is empty that's mean only one file
