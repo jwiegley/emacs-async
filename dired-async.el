@@ -127,10 +127,13 @@ Should take same args as `message'."
   (when operation
     (if (file-exists-p dired-async-log-file)
         (progn
-          (pop-to-buffer (get-buffer-create "*dired async*"))
-          (erase-buffer)
+          (pop-to-buffer (get-buffer-create dired-log-buffer))
+          (goto-char (point-max))
+          (setq inhibit-read-only t)
           (insert "Error: ")
           (insert-file-contents dired-async-log-file)
+          (special-mode)
+          (shrink-window-if-larger-than-buffer)
           (delete-file dired-async-log-file))
         (run-with-timer
          0.1 nil
