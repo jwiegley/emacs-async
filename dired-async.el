@@ -44,7 +44,6 @@
 
 (eval-when-compile
   (defvar async-callback))
-;; (defvar dired-async-operation nil)
 
 (defgroup dired-async nil
   "Copy rename files asynchronously from dired."
