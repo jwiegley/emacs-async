@@ -268,7 +268,6 @@ ESC or `q' to not overwrite any of the remaining files,
       (async-start `(lambda ()
                       (require 'cl-lib) (require 'dired-aux) (require 'dired-x)
                       ,(async-inject-variables dired-async-env-variables-regexp)
-                      (condition-case err
                           (let ((dired-recursive-copies (quote always))
                                 (dired-copy-preserve-time
                                  ,dired-copy-preserve-time))
@@ -295,11 +294,14 @@ ESC or `q' to not overwrite any of the remaining files,
                             ;; Now run the FILE-CREATOR function on files.
                             (cl-loop with fn = (quote ,file-creator)
                                      for (from . dest) in (quote ,async-fn-list)
-                                     do (funcall fn from dest t)))
-                        (file-error
-                         (dired-log "%s: %s\n" (car err) (cdr err))
-                         (dired-log t)
-                         (with-current-buffer dired-log-buffer
+                                     do (condition-case err
+                                            (funcall fn from dest t)
+                                          (file-error
+                                           (dired-log "%s: %s\n" (car err) (cdr err)))
+                                          nil))
+                        (when (get-buffer dired-log-buffer)
+                          (dired-log t)
+                          (with-current-buffer dired-log-buffer
                            (write-region (point-min) (point-max)
                                          ,dired-async-log-file))))
                       ,(dired-async-maybe-kill-ftp))
