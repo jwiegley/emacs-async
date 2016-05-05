@@ -141,13 +141,13 @@ Should take same args as `message'."
            ;; First send error messages.
            (cond (failures
                   (funcall dired-async-message-function
-                           "%s failed for %d of %d file%s"
+                           "%s failed for %d of %d file%s -- See *Dired log* buffer"
                            'dired-async-failures
                            (car operation) (length failures)
                            total (dired-plural-s total)))
                  (skipped
                   (funcall dired-async-message-function
-                           "%s: %d of %d file%s skipped"
+                           "%s: %d of %d file%s skipped -- See *Dired log* buffer"
                            'dired-async-failures
                            (car operation) (length skipped) total
                            (dired-plural-s total))))
@@ -241,13 +241,13 @@ ESC or `q' to not overwrite any of the remaining files,
       (unless async-fn-list
         (cond (failures
                (funcall dired-async-message-function
-                        "%s failed for %d of %d file%s"
+                        "%s failed for %d of %d file%s -- See *Dired log* buffer"
                         'dired-async-failures
                         operation (length failures)
                         total (dired-plural-s total)))
               (skipped
                (funcall dired-async-message-function
-                        "%s: %d of %d file%s skipped"
+                        "%s: %d of %d file%s skipped -- See *Dired log* buffer"
                         'dired-async-failures
                         operation (length skipped) total
                         (dired-plural-s total)))))
