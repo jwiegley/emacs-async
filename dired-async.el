@@ -262,7 +262,7 @@ ESC or `q' to not overwrite any of the remaining files,
                           for destp = (file-exists-p to)
                           do (and bf destp
                                   (with-current-buffer bf
-                                    (set-visited-file-name to nil t))))))))
+                                    (set-visited-file-name to t t))))))))
     ;; Start async process.
     (when async-fn-list
       (async-start `(lambda ()
