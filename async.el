@@ -310,7 +310,7 @@ For example:
 
   (async-let ((x (foo))
               (y (bar)))
-     (message "%s %s" x y))
+     (message \"%s %s\" x y))
 
     expands to ==>
 
@@ -318,7 +318,7 @@ For example:
    (lambda (x)
      (async-start (bar)
       (lambda (y)
-        (message "%s %s" x y)))))"
+        (message \"%s %s\" x y)))))"
   (async--fold-left
    (lambda (acc binding)
      `(async-start ,(cadr binding)
