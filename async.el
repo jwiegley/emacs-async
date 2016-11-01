@@ -298,6 +298,34 @@ returns nil.  It can still be useful, however, as an argument to
   "Evaluate FUNC in a separate Emacs process, synchronously."
   `(async-get (async-start ,func)))
 
+(defun async--fold-left (f z xs)
+  (let ((res z))
+    (dolist (x xs)
+      (setq res (funcall f res x)))
+    res))
+
+(defmacro async-let (bindings forms)
+  "Implements `let', but each binding is established asynchronously.
+For example:
+
+  (async-let ((x (foo))
+              (y (bar)))
+     (message "%s %s" x y))
+
+    expands to ==>
+
+  (async-start (foo)
+   (lambda (x)
+     (async-start (bar)
+      (lambda (y)
+        (message "%s %s" x y)))))"
+  (async--fold-left
+   (lambda (acc binding)
+     `(async-start ,(cadr binding)
+                   (lambda (,(car binding))
+                     ,acc)))
+   forms (reverse bindings)))
+
 (provide 'async)
 
 ;;; async.el ends here
