@@ -319,12 +319,17 @@ For example:
      (async-start (bar)
       (lambda (y)
         (message \"%s %s\" x y)))))"
+  (declare (indent 1))
   (async--fold-left
    (lambda (acc binding)
-     `(async-start ,(cadr binding)
-                   (lambda (,(car binding))
-                     ,acc)))
-   forms (reverse bindings)))
+     (let ((fun (pcase (cadr binding)
+                  ((and (pred functionp) f) f)
+                  (f `(lambda () ,f)))))
+       `(async-start ,fun
+                     (lambda (,(car binding))
+                       ,acc))))
+   forms
+   (reverse bindings)))
 
 (provide 'async)
 
