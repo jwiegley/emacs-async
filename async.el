@@ -304,7 +304,7 @@ returns nil.  It can still be useful, however, as an argument to
       (setq res (funcall f res x)))
     res))
 
-(defmacro async-let (bindings forms)
+(defmacro async-let (bindings &rest forms)
   "Implements `let', but each binding is established asynchronously.
 For example:
 
@@ -328,7 +328,7 @@ For example:
        `(async-start ,fun
                      (lambda (,(car binding))
                        ,acc))))
-   forms
+   `(progn ,@forms)
    (reverse bindings)))
 
 (provide 'async)
