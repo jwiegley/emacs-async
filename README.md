@@ -147,3 +147,39 @@ present).  It is intended to be used as follows:
             ,(async-inject-variables "\\`\\(smtpmail\\|\\(user-\\)?mail\\)-")
             (smtpmail-send-it)))
        'ignore)
+
+## async-let
+
+Allow to establish let bindings asynchronously.
+Each value of binding can refer to the symbols already bound in BINDINGS (like `let*`).
+FORMS are executed once BINDINGS have been evaluated, but without blocking emacs.
+
+Examples:
+
+```elisp
+(async-let ((x "hello")
+            (y "world"))
+  (message "%s %s" x y))
+  
+(async-let ((x (* 5 2))
+            (y (+ x 4))
+            (z (+ x y)))
+  (message "%d + %d = %d" x y z))
+
+```
+
+Note that if you bind something to nil and set it afterward in body, the evaluation
+of this binding will NOT be asynchronous, but will happen in you current emacs, blocking it
+if the evaluation of this value is sufficiently important, e.g:
+
+```elisp
+(async-let ((x "hello")
+            (y "world")
+            z)
+  (setq z (+ 1 2)) ;; Huge calculation of Z will block emacs.
+  (message "%s %s %d" x y z))
+
+```
+
+IOW if the calculation of Z is huge and you want it asynchronous evaluate it in BINDINGS
+but not in FORMS.
