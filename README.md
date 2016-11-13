@@ -6,6 +6,11 @@
 # emacs-async
 
 `async.el` is a module for doing asynchronous processing in Emacs.
+Some async applications are provided as well with this package:
+
+* Dired-async
+* smtp-mail-async
+* async-bytecomp
 
 # Install
 
@@ -46,7 +51,7 @@ to do this, add to your init file:
 You can control which packages will compile async with `async-bytecomp-allowed-packages`.
 Set it to `'(all)` to be sure you will compile all packages asynchronously.
 
-# Usage
+# Async usage
 
 The interface is intended to be very easy to use:
 
@@ -57,41 +62,47 @@ The interface is intended to be very easy to use:
 Execute START-FUNC (often a lambda) in a subordinate Emacs process.  When
 done, the return value is passed to FINISH-FUNC.  Example:
 
-    (async-start
-       ;; What to do in the child process
-       (lambda ()
-         (message "This is a test")
-         (sleep-for 3)
-         222)
+```elisp
+(async-start
+   ;; What to do in the child process
+   (lambda ()
+     (message "This is a test")
+     (sleep-for 3)
+     222)
 
-       ;; What to do when it finishes
-       (lambda (result)
-         (message "Async process done, result should be 222: %s" result)))
+   ;; What to do when it finishes
+   (lambda (result)
+     (message "Async process done, result should be 222: %s" result)))
+```
 
 If FINISH-FUNC is `nil` or missing, a future is returned that can be inspected
 using `async-get`, blocking until the value is ready.  Example:
 
-    (let ((proc (async-start
-                   ;; What to do in the child process
-                   (lambda ()
-                     (message "This is a test")
-                     (sleep-for 3)
-                     222))))
+```elisp
+(let ((proc (async-start
+               ;; What to do in the child process
+               (lambda ()
+                 (message "This is a test")
+                 (sleep-for 3)
+                 222))))
 
-        (message "I'm going to do some work here") ;; ....
+    (message "I'm going to do some work here") ;; ....
 
-        (message "Waiting on async process, result should be 222: %s"
-                 (async-get proc)))
+    (message "Waiting on async process, result should be 222: %s"
+             (async-get proc)))
+```
 
 If you don't want to use a callback, and you don't care about any return value
 from the child process, pass the `'ignore` symbol as the second argument (if
 you don't, and never call `async-get`, it will leave ``*emacs*`` process buffers
 hanging around):
 
-    (async-start
-     (lambda ()
-       (delete-file "a remote file on a slow link" nil))
-     'ignore)
+```elisp
+(async-start
+ (lambda ()
+   (delete-file "a remote file on a slow link" nil))
+ 'ignore)
+```
 
 Note: Even when FINISH-FUNC is present, a future is still returned except that
 it yields no value (since the value is passed to FINISH-FUNC).  Calling
@@ -138,18 +149,22 @@ the value for every variable matching INCLUDE-REGEXP and also PREDICATE.  It
 will not perform injection for any variable matching EXCLUDE-REGEXP (if
 present).  It is intended to be used as follows:
 
-    (async-start
-       `(lambda ()
-          (require 'smtpmail)
-          (with-temp-buffer
-            (insert ,(buffer-substring-no-properties (point-min) (point-max)))
-            ;; Pass in the variable environment for smtpmail
-            ,(async-inject-variables "\\`\\(smtpmail\\|\\(user-\\)?mail\\)-")
-            (smtpmail-send-it)))
-       'ignore)
+```elisp
+(async-start
+   `(lambda ()
+      (require 'smtpmail)
+      (with-temp-buffer
+        (insert ,(buffer-substring-no-properties (point-min) (point-max)))
+        ;; Pass in the variable environment for smtpmail
+        ,(async-inject-variables "\\`\\(smtpmail\\|\\(user-\\)?mail\\)-")
+        (smtpmail-send-it)))
+   'ignore)
+```
 
 ## async-let
 
+    async-let BINDINGS &rest FORMS
+    
 Allow to establish let bindings asynchronously.
 Each value of binding can refer to the symbols already bound in BINDINGS (like `let*`).
 FORMS are executed once BINDINGS have been evaluated, but without blocking emacs.
