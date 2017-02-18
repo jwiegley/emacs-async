@@ -180,7 +180,7 @@ would result from a call to `async-get' on that FUTURE."
                async-callback-value-set)
              t))))
 
-(defun async--wait (future)
+(defun async-wait (future)
   "Wait for FUTURE to become ready."
   (while (not (async-ready future))
     (sit-for 0.05)))
@@ -189,7 +189,7 @@ would result from a call to `async-get' on that FUTURE."
   "Get the value from process FUTURE when it is ready.
 FUTURE is returned by `async-start' or `async-start-process' when
 its FINISH-FUNC is nil."
-  (and future (async--wait future))
+  (and future (async-wait future))
   (let ((buf (process-buffer future)))
     (when (buffer-live-p buf)
       (with-current-buffer buf
@@ -278,7 +278,7 @@ Note: Even when FINISH-FUNC is present, a future is still
 returned except that it yields no value (since the value is
 passed to FINISH-FUNC).  Call `async-get' on such a future always
 returns nil.  It can still be useful, however, as an argument to
-`async-ready'."
+`async-ready' or `async-wait'."
   (let ((sexp start-func)
 	;; Subordinate Emacs will send text encoded in UTF-8.
 	(coding-system-for-read 'utf-8-unix))
