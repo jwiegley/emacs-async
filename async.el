@@ -169,24 +169,32 @@ as follows:
 	 (prin1 (list 'async-signal err)))))))
 
 (defun async-ready (future)
-  "Query a FUTURE to see if the ready is ready -- i.e., if no blocking
+  "Query a FUTURE to see if it is ready.
+
+I.e., if no blocking
 would result from a call to `async-get' on that FUTURE."
   (and (memq (process-status future) '(exit signal))
-       (with-current-buffer (process-buffer future)
-         async-callback-value-set)))
+       (let ((buf (process-buffer future)))
+         (if (buffer-live-p buf)
+             (with-current-buffer buf
+               async-callback-value-set)
+             t))))
 
-(defun async-wait (future)
+(defun async--wait (future)
   "Wait for FUTURE to become ready."
   (while (not (async-ready future))
     (sit-for 0.05)))
 
 (defun async-get (future)
-  "Get the value from an asynchronously function when it is ready.
+  "Get the value from process FUTURE when it is ready.
 FUTURE is returned by `async-start' or `async-start-process' when
 its FINISH-FUNC is nil."
-  (async-wait future)
-  (with-current-buffer (process-buffer future)
-    (async-handle-result #'identity async-callback-value (current-buffer))))
+  (and future (async--wait future))
+  (let ((buf (process-buffer future)))
+    (when (buffer-live-p buf)
+      (with-current-buffer buf
+        (async-handle-result
+         #'identity async-callback-value (current-buffer))))))
 
 (defun async-message-p (value)
   "Return true of VALUE is an async.el message packet."
@@ -270,7 +278,7 @@ Note: Even when FINISH-FUNC is present, a future is still
 returned except that it yields no value (since the value is
 passed to FINISH-FUNC).  Call `async-get' on such a future always
 returns nil.  It can still be useful, however, as an argument to
-`async-ready' or `async-wait'."
+`async-ready'."
   (let ((sexp start-func)
 	;; Subordinate Emacs will send text encoded in UTF-8.
 	(coding-system-for-read 'utf-8-unix))
