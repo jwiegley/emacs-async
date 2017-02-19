@@ -183,7 +183,7 @@ would result from a call to `async-get' on that FUTURE."
 (defun async-wait (future)
   "Wait for FUTURE to become ready."
   (while (not (async-ready future))
-    (sit-for 0.05)))
+    (sleep-for 0.05)))
 
 (defun async-get (future)
   "Get the value from process FUTURE when it is ready.
