@@ -61,7 +61,7 @@ It is called just before calling `smtpmail-send-it'.")
           (set-buffer-multibyte nil)
           ;; Pass in the variable environment for smtpmail
           ,(async-inject-variables
-            "\\`\\(smtpmail\\|async-smtpmail\\|\\(user-\\)?mail\\)-\\|auth-sources\\|epg"
+            "\\`\\(smtpmail\\|async-smtpmail\\|\\(user-\\)?mail\\)-\\|auth-sources\\|epg\\|nsm"
             nil "\\`\\(mail-header-format-function\\|smtpmail-address-buffer\\|mail-mode-abbrev-table\\)")
           (run-hooks 'async-smtpmail-before-send-hook)
           (smtpmail-send-it)))
