@@ -51,6 +51,22 @@ to do this, add to your init file:
 You can control which packages will compile async with `async-bytecomp-allowed-packages`.
 Set it to `'(all)` to be sure you will compile all packages asynchronously.
 
+## Send mails asynchronously with smtp mail async
+
+To enable this feature, ensure smtp-mail-async.el is loaded and use 
+`(setq message-send-mail-function 'async-smtpmail-send-it)`.
+
+WARNINGS:
+
+- When using recent emacs (25+) the network security manager maybe
+called interactively in child emacs and make `async-smtpmail-send-it`
+fail, so be sure to send email once synchronously before using
+`async-smtpmail-send-it` as your `message-send-mail-function`.
+
+- You may loose your sent mail if your network is down, so ensure to
+queue your mails if so.  you can do this automatically,
+see [issue #64](https://github.com/jwiegley/emacs-async/issues/64).
+
 # Async usage
 
 The interface is intended to be very easy to use:
