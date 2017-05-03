@@ -14,6 +14,13 @@ Some async applications are provided as well with this package:
 
 # Install
 
+You can install emacs-async package from ELPA or MELPA using package.el.
+
+You can also install from sources, in this case you should install
+using make and make install to ensure emacs-async is intalled in a
+standard load-path destination where other packages can find it
+easily when compiling.
+
 ## Install dired-async
 
 Add to your `.emacs.el`:
