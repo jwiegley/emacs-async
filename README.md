@@ -53,7 +53,8 @@ Set it to `'(all)` to be sure you will compile all packages asynchronously.
 
 ## Send mails asynchronously with smtp mail async
 
-To enable this feature, ensure smtp-mail-async.el is loaded and use 
+To enable this feature, ensure smtp-mail-async.el is loaded and use
+
 `(setq message-send-mail-function 'async-smtpmail-send-it)`.
 
 WARNINGS:
