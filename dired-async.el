@@ -310,6 +310,19 @@ ESC or `q' to not overwrite any of the remaining files,
       (dired-async--modeline-mode 1)
       (message "%s proceeding asynchronously..." operation))))
 
+(defvar wdired-use-interactive-rename)
+(defun dired-async-wdired-do-renames (old-fn &rest args)
+  ;; Perhaps a better fix would be to ask for renaming BEFORE starting
+  ;; OLD-FN when `wdired-use-interactive-rename' is non-nil.  For now
+  ;; just bind it to nil to ensure no questions will be asked between
+  ;; each rename.
+  (let (wdired-use-interactive-rename)
+    (apply old-fn args)))
+
+(defadvice wdired-do-renames (around wdired-async)
+  (let (wdired-use-interactive-rename)
+    ad-do-it))
+
 (defadvice dired-create-files (around dired-async)
   (dired-async-create-files file-creator operation fn-list
                             name-constructor marker-char))
@@ -321,11 +334,15 @@ ESC or `q' to not overwrite any of the remaining files,
   :global t
   (if dired-async-mode
       (if (fboundp 'advice-add)
-          (advice-add 'dired-create-files :override #'dired-async-create-files)
-          (ad-activate 'dired-create-files))
+          (progn (advice-add 'dired-create-files :override #'dired-async-create-files)
+                 (advice-add 'wdired-do-renames :around #'dired-async-wdired-do-renames))
+        (ad-activate 'dired-create-files)
+        (ad-activate 'wdired-do-renames))
       (if (fboundp 'advice-remove)
-          (advice-remove 'dired-create-files #'dired-async-create-files)
-          (ad-deactivate 'dired-create-files))))
+          (progn (advice-remove 'dired-create-files #'dired-async-create-files)
+                 (advice-remove 'wdired-do-renames #'dired-async-wdired-do-renames))
+          (ad-deactivate 'dired-create-files)
+          (ad-deactivate 'wdired-do-renames))))
 
 
 (provide 'dired-async)
