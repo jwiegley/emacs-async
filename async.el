@@ -288,7 +288,7 @@ returns nil.  It can still be useful, however, as an argument to
                     (expand-file-name invocation-name
                                       invocation-directory))
            finish-func
-           "-Q" "-l"
+           "-q" "-l"
            ;; Using `locate-library' ensure we use the right file
            ;; when the .elc have been deleted.
            (locate-library "async")
