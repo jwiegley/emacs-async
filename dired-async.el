@@ -177,7 +177,9 @@ Should take same args as `message'."
 See `dired-create-files' for the behavior of arguments."
   (setq overwrite-query nil)
   (let ((total (length fn-list))
-        failures async-fn-list skipped callback)
+        failures async-fn-list skipped callback
+        ;; Fix tramp issue #80 with emacs-26
+        (async-quiet-switch "-q"))
     (let (to)
       (dolist (from fn-list)
         (setq to (funcall name-constructor from))
