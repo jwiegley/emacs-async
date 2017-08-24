@@ -66,6 +66,14 @@ Should take same args as `message'."
   :group 'dired-async
   :type 'string)
 
+(defcustom dired-async-mode-lighter '(:eval
+                                      (when (eq major-mode 'dired-mode)
+                                        " Async"))
+  "Mode line lighter used for `dired-async-mode'."
+  :group 'dired-async
+  :risky t
+  :type 'sexp)
+
 (defface dired-async-message
     '((t (:foreground "yellow")))
   "Face used for mode-line message."
@@ -337,8 +345,9 @@ ESC or `q' to not overwrite any of the remaining files,
 
 ;;;###autoload
 (define-minor-mode dired-async-mode
-    "Do dired actions asynchronously."
+  "Do dired actions asynchronously."
   :group 'dired-async
+  :lighter dired-async-mode-lighter
   :global t
   (if dired-async-mode
       (if (fboundp 'advice-add)
