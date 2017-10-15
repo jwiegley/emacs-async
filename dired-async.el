@@ -362,6 +362,39 @@ ESC or `q' to not overwrite any of the remaining files,
           (ad-deactivate 'dired-create-files)
           (ad-deactivate 'wdired-do-renames))))
 
+(defmacro dired-async--with-async-create-files (&rest body)
+  "Evaluate BODY with ‘dired-create-files’ set to ‘dired-async-create-files’."
+  (declare (indent 0))
+  `(cl-letf (((symbol-function 'dired-create-files) #'dired-async-create-files))
+     ,@body))
+
+;;;###autoload
+(defun dired-async-do-copy (&optional arg)
+  "Run ‘dired-do-copy’ asynchronously."
+  (interactive "P")
+  (dired-async--with-async-create-files
+    (dired-do-copy arg)))
+
+;;;###autoload
+(defun dired-async-do-symlink (&optional arg)
+  "Run ‘dired-do-symlink’ asynchronously."
+  (interactive "P")
+  (dired-async--with-async-create-files
+    (dired-do-symlink arg)))
+
+;;;###autoload
+(defun dired-async-do-hardlink (&optional arg)
+  "Run ‘dired-do-hardlink’ asynchronously."
+  (interactive "P")
+  (dired-async--with-async-create-files
+    (dired-do-hardlink arg)))
+
+;;;###autoload
+(defun dired-async-do-rename (&optional arg)
+  "Run ‘dired-do-rename’ asynchronously."
+  (interactive "P")
+  (dired-async--with-async-create-files
+    (dired-do-rename arg)))
 
 (provide 'dired-async)
 
