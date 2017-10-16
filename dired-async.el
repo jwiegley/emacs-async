@@ -246,7 +246,7 @@ ESC or `q' to not overwrite any of the remaining files,
       (setq async-quiet-switch
             (if (and (boundp 'tramp-cache-read-persistent-data)
                      async-fn-list
-                     (cl-loop for (from . to) in async-fn-list
+                     (cl-loop for (_from . to) in async-fn-list
                               thereis (file-remote-p to)))
                 "-q" "-Q"))
       ;; When failures have been printed to dired log add the date at bob.
