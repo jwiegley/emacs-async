@@ -121,9 +121,9 @@ as follows:
 
 (defun async--receive-sexp (&optional stream)
   (let ((sexp (decode-coding-string (base64-decode-string
-                                     (read stream)) 'utf-8-unix))
+                                     (read stream)) 'utf-8-auto))
 	;; Parent expects UTF-8 encoded text.
-	(coding-system-for-write 'utf-8-unix))
+	(coding-system-for-write 'utf-8-auto))
     (if async-debug
         (message "Received sexp {{{%s}}}" (pp-to-string sexp)))
     (setq sexp (read sexp))
@@ -138,7 +138,7 @@ as follows:
 	(print-circle t))
     (prin1 sexp (current-buffer))
     ;; Just in case the string we're sending might contain EOF
-    (encode-coding-region (point-min) (point-max) 'utf-8-unix)
+    (encode-coding-region (point-min) (point-max) 'utf-8-auto)
     (base64-encode-region (point-min) (point-max) t)
     (goto-char (point-min)) (insert ?\")
     (goto-char (point-max)) (insert ?\" ?\n)))
@@ -154,7 +154,7 @@ as follows:
   "Called from the child Emacs process' command-line."
   ;; Make sure 'message' and 'prin1' encode stuff in UTF-8, as parent
   ;; process expects.
-  (let ((coding-system-for-write 'utf-8-unix))
+  (let ((coding-system-for-write 'utf-8-auto))
     (setq async-in-child-emacs t
 	  debug-on-error async-debug)
     (if debug-on-error
@@ -287,7 +287,7 @@ returns nil.  It can still be useful, however, as an argument to
 `async-ready' or `async-wait'."
   (let ((sexp start-func)
 	;; Subordinate Emacs will send text encoded in UTF-8.
-	(coding-system-for-read 'utf-8-unix))
+	(coding-system-for-read 'utf-8-auto))
     (setq async--procvar
           (async-start-process
            "emacs" (file-truename
