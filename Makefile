@@ -73,3 +73,4 @@ install:
 
 uninstall:
 	rm -vf ${DESTDIR}*.elc
+	rm -vf ${DESTDIR}*.el
