@@ -31,6 +31,8 @@
 
 ;;; Code:
 
+(eval-when-compile (require 'cl-lib))
+
 (defgroup async nil
   "Simple asynchronous processing in Emacs"
   :group 'emacs)
@@ -54,7 +56,7 @@
   "Remove text properties in SEQUENCE.
 
 Argument SEQUENCE may be a list or a string, if anything else it
-returned unmodified.
+is returned unmodified.
 
 Note that this is a naive function that doesn't remove text properties
 in SEQUENCE recursively, only at the first level which suffice in most
