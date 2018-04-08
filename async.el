@@ -35,6 +35,11 @@
   "Simple asynchronous processing in Emacs"
   :group 'emacs)
 
+(defcustom async-variables-noprops-function #'async-variables-noprops
+  "Default function to remove text properties in variables."
+  :group 'async
+  :type 'function)
+
 (defvar async-debug nil)
 (defvar async-send-over-pipe t)
 (defvar async-in-child-emacs nil)
@@ -45,13 +50,35 @@
 (defvar async-current-process nil)
 (defvar async--procvar nil)
 
+(defun async-variables-noprops (sequence)
+  "Remove text properties in SEQUENCE.
+
+Argument SEQUENCE may be a list or a string, if anything else it
+returned unmodified.
+
+Note that this is a naive function that doesn't remove text properties
+in SEQUENCE recursively, only at the first level which suffice in most
+cases."
+  (cond ((stringp sequence)
+         (substring-no-properties sequence))
+        ((listp sequence)
+         (cl-loop for elm in sequence
+                  if (stringp elm)
+                  collect (substring-no-properties elm)
+                  else collect elm))
+        (t sequence)))
+
 (defun async-inject-variables
-  (include-regexp &optional predicate exclude-regexp)
+  (include-regexp &optional predicate exclude-regexp noprops)
   "Return a `setq' form that replicates part of the calling environment.
+
 It sets the value for every variable matching INCLUDE-REGEXP and
 also PREDICATE.  It will not perform injection for any variable
-matching EXCLUDE-REGEXP (if present).  It is intended to be used
-as follows:
+matching EXCLUDE-REGEXP (if present).
+When NOPROPS is non nil it tries to strip out text properties of each
+variable's value with `async-variables-noprops-function'.
+
+It is intended to be used as follows:
 
     (async-start
        `(lambda ()
@@ -73,6 +100,9 @@ as follows:
                           (or exclude-regexp "-syntax-table\\'")
                           (symbol-name sym))))
                (let ((value (symbol-value sym)))
+                 (when noprops
+                   (setq value (funcall async-variables-noprops-function
+                                        value)))
                  (when (or (null predicate)
                            (funcall predicate sym))
                    (setq bindings (cons `(quote ,value) bindings)
