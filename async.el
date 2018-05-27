@@ -106,6 +106,7 @@ It is intended to be used as follows:
                         (not (string-match "-syntax-table\\'" sname)))
                (unless (or (stringp value)
                            (memq value '(nil t))
+                           (numberp value)
                            (vectorp value))
                  (setq value `(quote ,value)))
                (when noprops
