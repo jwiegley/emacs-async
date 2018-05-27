@@ -76,7 +76,8 @@ cases."
 
 It sets the value for every variable matching INCLUDE-REGEXP and
 also PREDICATE.  It will not perform injection for any variable
-matching EXCLUDE-REGEXP (if present).
+matching EXCLUDE-REGEXP (if present) or representing a syntax-table
+i.e. ending by \"-syntax-table\".
 When NOPROPS is non nil it tries to strip out text properties of each
 variable's value with `async-variables-noprops-function'.
 
@@ -95,20 +96,24 @@ It is intended to be used as follows:
     ,@(let (bindings)
         (mapatoms
          (lambda (sym)
-           (if (and (boundp sym)
-                    (or (null include-regexp)
-                        (string-match include-regexp (symbol-name sym)))
-                    (not (string-match
-                          (or exclude-regexp "-syntax-table\\'")
-                          (symbol-name sym))))
-               (let ((value (symbol-value sym)))
-                 (when noprops
-                   (setq value (funcall async-variables-noprops-function
-                                        value)))
-                 (when (or (null predicate)
-                           (funcall predicate sym))
-                   (setq bindings (cons `(quote ,value) bindings)
-                         bindings (cons sym bindings)))))))
+           (when (and (boundp sym)
+                      (or (null include-regexp)
+                          (string-match include-regexp (symbol-name sym)))
+                      (or (null exclude-regexp)
+                          (not (string-match exclude-regexp (symbol-name sym))))
+                      (not (string-match "-syntax-table\\'" (symbol-name sym))))
+             (let ((value (symbol-value sym)))
+               (unless (or (stringp value)
+                           (memq value '(nil t))
+                           (vectorp value))
+                 (setq value `(quote ,value)))
+               (when noprops
+                 (setq value (funcall async-variables-noprops-function
+                                      value)))
+               (when (or (null predicate)
+                         (funcall predicate sym))
+                 (setq bindings (cons value bindings)
+                       bindings (cons sym bindings)))))))
         bindings)))
 
 (defalias 'async-inject-environment 'async-inject-variables)
