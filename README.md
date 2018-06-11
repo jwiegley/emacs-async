@@ -48,7 +48,7 @@ prompt, entering a password etc...  Your async implementation should
 avoid any user interaction to avoid beeing stuck with a prompt you
 will not be able to answer to in child emacs.  For all what is remote
 (mails, tramp etc...) you have to let emacs manage your identification
-with [auth-source](https://www.gnu.org/software/emacs/manual/html_mono/auth.html) so that you do not have to enter a password.
+with [auth-sources](https://www.gnu.org/software/emacs/manual/html_mono/auth.html) so that you do not have to enter a password.
 
 Basically all you need is something like this in your init file:
 
@@ -66,7 +66,11 @@ or
 
 for more specific hosts (smtp, mails etc...)
 
-See [auth-source manual](https://www.gnu.org/software/emacs/manual/html_mono/auth.html) for more infos.
+See [auth-sources manual](https://www.gnu.org/software/emacs/manual/html_mono/auth.html) for more infos.
+
+NOTE: For all your async implementations in emacs-26+ versions that
+handle remote files (tramp), you will have to let-bind
+`async-quiet-switch` to `-q` to workaround a tramp bug that prevent `emacs -Q` to use [auth-sources](https://www.gnu.org/software/emacs/manual/html_mono/auth.html) mechanism.
 
 ## Enable asynchronous compilation of your (M)elpa packages
 
