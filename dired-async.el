@@ -162,7 +162,9 @@ Should take same args as `message'."
            (when dired-buffers
              (cl-loop for (_f . b) in dired-buffers
                       when (buffer-live-p b)
-                      do (with-current-buffer b (revert-buffer nil t))))
+                      do (with-current-buffer b
+                           (when (file-exists-p default-directory)
+                             (revert-buffer nil t)))))
            ;; Finally send the success message.
            (funcall dired-async-message-function
                     "Asynchronous %s of %s on %s file%s done"
