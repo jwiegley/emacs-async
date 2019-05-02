@@ -37,7 +37,7 @@
   "Simple asynchronous processing in Emacs"
   :group 'emacs)
 
-(defcustom async-variables-noprops-function #'async-variables-noprops
+(defcustom async-variables-noprops-function #'async--purecopy
   "Default function to remove text properties in variables."
   :group 'async
   :type 'function)
@@ -52,23 +52,23 @@
 (defvar async-current-process nil)
 (defvar async--procvar nil)
 
-(defun async-variables-noprops (sequence)
-  "Remove text properties in SEQUENCE.
+(defun async--purecopy (object)
+  "Remove text properties in OBJECT.
 
-Argument SEQUENCE may be a list or a string, if anything else it
-is returned unmodified.
-
-Note that this is a naive function that doesn't remove text properties
-in SEQUENCE recursively, only at the first level which suffice in most
-cases."
-  (cond ((stringp sequence)
-         (substring-no-properties sequence))
-        ((listp sequence)
-         (cl-loop for elm in sequence
+Argument OBJECT may be a list or a string, if anything else it
+is returned unmodified."
+  (cond ((stringp object)
+         (substring-no-properties object))
+        ((listp object)
+         (cl-loop for elm in object
                   if (stringp elm)
                   collect (substring-no-properties elm)
-                  else collect elm))
-        (t sequence)))
+                  else
+                  if (and (listp elm) (null (cdr (last elm))))
+                  collect (async--purecopy elm)
+                  else
+                  collect elm))
+        (t object)))
 
 (defun async-inject-variables
   (include-regexp &optional predicate exclude-regexp noprops)
