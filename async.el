@@ -59,12 +59,12 @@ Argument OBJECT may be a list or a string, if anything else it
 is returned unmodified."
   (cond ((stringp object)
          (substring-no-properties object))
-        ((listp object)
+        ((consp object)
          (cl-loop for elm in object
                   if (stringp elm)
                   collect (substring-no-properties elm)
                   else
-                  if (and (listp elm) (null (cdr (last elm))))
+                  if (and (consp elm) (null (cdr (last elm))))
                   collect (async--purecopy elm)
                   else
                   collect elm))
