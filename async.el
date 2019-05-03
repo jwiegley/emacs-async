@@ -61,11 +61,27 @@ is returned unmodified."
          (substring-no-properties object))
         ((consp object)
          (cl-loop for elm in object
+                  ;; A string.
                   if (stringp elm)
                   collect (substring-no-properties elm)
                   else
+                  ;; Proper lists.
                   if (and (consp elm) (null (cdr (last elm))))
                   collect (async--purecopy elm)
+                  else
+                  ;; Dotted lists.
+                  ;; We handle here only dotted list where car and cdr
+                  ;; are atoms i.e. (x . y) and not (x . (x . y)) or
+                  ;; (x . (x y)) which should fit most cases.
+                  if (and (consp elm) (cdr (last elm)))
+                  collect (let ((key (car elm))
+                                (val (cdr elm)))
+                            (cons (if (stringp key)
+                                      (substring-no-properties key)
+                                    key)
+                                  (if (stringp val)
+                                      (substring-no-properties val)
+                                    val)))
                   else
                   collect elm))
         (t object)))
