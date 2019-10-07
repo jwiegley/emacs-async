@@ -42,14 +42,21 @@
 (require 'async)
 
 (defcustom async-bytecomp-allowed-packages
+  ;; FIXME: Arguably the default should be `all', but currently
+  ;; this minor mode is silently/forcefully enabled by Helm and Magit to ensure
+  ;; they get compiled asynchronously, so this conservative default value is
+  ;; here to make sure that the mode can be enabled without the user's
+  ;; explicit consent.
   '(async helm helm-core helm-ls-git helm-ls-hg magit)
   "Packages in this list will be compiled asynchronously by `package--compile'.
 All the dependencies of these packages will be compiled async too,
 so no need to add dependencies to this list.
-The value of this variable can also be a list with a single element,
-the symbol `all', in this case packages are always compiled asynchronously."
+The value of this variable can also be the symbol `all', in this case
+all packages are always compiled asynchronously."
   :group 'async
-  :type '(repeat (choice symbol)))
+  :type '(choice
+          (const :tag "All packages" all)
+          (repeat symbol)))
 
 (defvar async-byte-compile-log-file
   (concat user-emacs-directory "async-bytecomp.log"))
@@ -109,46 +116,30 @@ All *.elc files are systematically deleted before proceeding."
 (defvar package-alist)
 (declare-function package-desc-reqs "package.el" (cl-x))
 
-(defun async-bytecomp--get-package-deps (pkg &optional only)
+(defun async-bytecomp--get-package-deps (pkgs)
   ;; Same as `package--get-deps' but parse instead `package-archive-contents'
   ;; because PKG is not already installed and not present in `package-alist'.
   ;; However fallback to `package-alist' in case PKG no more present
   ;; in `package-archive-contents' due to modification to `package-archives'.
   ;; See issue #58.
-  (let* ((pkg-desc (cadr (or (assq pkg package-archive-contents)
-                             (assq pkg package-alist))))
-         (direct-deps (cl-loop for p in (package-desc-reqs pkg-desc)
-                               for name = (car p)
-                               when (or (assq name package-archive-contents)
-                                        (assq name package-alist))
-                               collect name))
-         (indirect-deps (unless (eq only 'direct)
-                          (delete-dups
-                           (cl-loop for p in direct-deps append
-                                    (async-bytecomp--get-package-deps p))))))
-    (cl-case only
-      (direct   direct-deps)
-      (separate (list direct-deps indirect-deps))
-      (indirect indirect-deps)
-      (t        (delete-dups (append direct-deps indirect-deps))))))
-
-(defun async-bytecomp-get-allowed-pkgs ()
-  (when (and async-bytecomp-allowed-packages
-             (listp async-bytecomp-allowed-packages))
-    (if package-archive-contents
-        (cl-loop for p in async-bytecomp-allowed-packages
-                 when (assq p package-archive-contents)
-                 append (async-bytecomp--get-package-deps p) into reqs
-                 finally return
-                 (delete-dups
-                  (append async-bytecomp-allowed-packages reqs)))
-        async-bytecomp-allowed-packages)))
+  (let ((seen '()))
+    (while pkgs
+      (let ((pkg (pop pkgs)))
+        (if (memq pkg seen)
+            nil ;; Done already!
+          (let ((pkg-desc (cadr (or (assq pkg package-archive-contents)
+                                    (assq pkg package-alist)))))
+            (when pkg-desc
+              (push pkg seen)
+              (setq pkgs (append (package-desc-reqs pkg-desc) pkgs)))))))
+    seen))
 
 (defadvice package--compile (around byte-compile-async)
   (let ((cur-package (package-desc-name pkg-desc))
         (pkg-dir (package-desc-dir pkg-desc)))
-    (if (or (equal async-bytecomp-allowed-packages '(all))
-            (memq cur-package (async-bytecomp-get-allowed-pkgs)))
+    (if (or (member async-bytecomp-allowed-packages '(t all (all)))
+            (memq cur-package (async-bytecomp--get-package-deps
+                               async-bytecomp-allowed-packages)))
         (progn
           (when (eq cur-package 'async)
             (fmakunbound 'async-byte-recompile-directory))
