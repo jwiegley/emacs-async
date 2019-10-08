@@ -1,6 +1,6 @@
-;;; async-test.el --- async.el-related tests
+;;; async-test.el --- async.el-related tests  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2012-2016 Free Software Foundation, Inc.
+;; Copyright (C) 2012-2019 Free Software Foundation, Inc.
 
 ;; Author: John Wiegley <jwiegley@gmail.com>
 ;; Created: 10 Jul 2012
@@ -31,9 +31,6 @@
 
 (require 'async)
 
-
-(eval-when-compile
-  (require 'cl))
 
 (defun async-test-1 ()
   (interactive)
@@ -134,7 +131,3 @@
 (provide 'async-test)
 
 ;;; async-test.el ends here
-
-;; Local Variables:
-;; no-byte-compile: t
-;; End:
