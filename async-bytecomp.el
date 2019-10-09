@@ -125,13 +125,13 @@ All *.elc files are systematically deleted before proceeding."
   (let ((seen '()))
     (while pkgs
       (let ((pkg (pop pkgs)))
-        (if (memq pkg seen)
-            nil ;; Done already!
+        (unless (memq pkg seen)
           (let ((pkg-desc (cadr (or (assq pkg package-archive-contents)
                                     (assq pkg package-alist)))))
             (when pkg-desc
               (push pkg seen)
-              (setq pkgs (append (package-desc-reqs pkg-desc) pkgs)))))))
+              (setq pkgs (append (mapcar #'car (package-desc-reqs pkg-desc))
+                                 pkgs)))))))
     seen))
 
 (defadvice package--compile (around byte-compile-async)
