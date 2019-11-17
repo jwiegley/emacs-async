@@ -43,12 +43,12 @@ Users of Debian 9 or later or Ubuntu 16.04 or later may simply `apt-get install 
 
 ## Authentification and user interaction
 
-All authentifications require user interaction like answering to a
-prompt, entering a password etc...  Your async implementation should
-avoid any user interaction to avoid beeing stuck with a prompt you
-will not be able to answer to in child emacs.  For all what is remote
+Some authentications require user interaction, for example answering to a
+prompt, entering a passwords etc. Your async implementation should
+avoid any such user interaction, to avoid being stuck with a prompt you
+will not be able to answer to in the child emacs.  For all what is remote
 (mails, tramp etc...) you have to let emacs manage your identification
-with [auth-sources](https://www.gnu.org/software/emacs/manual/html_mono/auth.html) so that you do not have to enter a password.
+with [auth-sources](https://www.gnu.org/software/emacs/manual/html_mono/auth.html), so that you do not have to enter a password.
 
 Basically all you need is something like this in your init file:
 
