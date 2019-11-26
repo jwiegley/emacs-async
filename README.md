@@ -41,7 +41,7 @@ If you don't want to make dired/helm asynchronous disable it with `dired-async-m
 
 Users of Debian 9 or later or Ubuntu 16.04 or later may simply `apt-get install elpa-async`.
 
-## Authentification and user interaction
+## Authentication and user interaction
 
 Some authentications require user interaction, for example answering to a
 prompt, entering a passwords etc. Your async implementation should
