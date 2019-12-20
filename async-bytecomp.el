@@ -47,7 +47,7 @@
   ;; they get compiled asynchronously, so this conservative default value is
   ;; here to make sure that the mode can be enabled without the user's
   ;; explicit consent.
-  '(async helm helm-core helm-ls-git helm-ls-hg magit)
+  '(async forge helm helm-core helm-ls-git helm-ls-hg magit)
   "Packages in this list will be compiled asynchronously by `package--compile'.
 All the dependencies of these packages will be compiled async too,
 so no need to add dependencies to this list.
