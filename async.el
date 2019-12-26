@@ -1,13 +1,13 @@
-;;; async.el --- Asynchronous processing in Emacs -*- lexical-binding: t -*-
+;;; async.el --- Asynchronous processing  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012-2016 Free Software Foundation, Inc.
 
 ;; Author: John Wiegley <jwiegley@gmail.com>
 ;; Created: 18 Jun 2012
 ;; Version: 1.9.4
-
-;; Keywords: async
-;; X-URL: https://github.com/jwiegley/emacs-async
+;; Package-Requires: ((emacs "24.3"))
+;; Keywords: convenience async
+;; URL: https://github.com/jwiegley/emacs-async
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -92,7 +92,7 @@ is returned unmodified."
 
 It sets the value for every variable matching INCLUDE-REGEXP and
 also PREDICATE.  It will not perform injection for any variable
-matching EXCLUDE-REGEXP (if present) or representing a syntax-table
+matching EXCLUDE-REGEXP (if present) or representing a `syntax-table'
 i.e. ending by \"-syntax-table\".
 When NOPROPS is non nil it tries to strip out text properties of each
 variable's value with `async-variables-noprops-function'.
@@ -206,7 +206,7 @@ It is intended to be used as follows:
     (process-send-region process (point-min) (point-max))))
 
 (defun async-batch-invoke ()
-  "Called from the child Emacs process' command-line."
+  "Called from the child Emacs process' command line."
   ;; Make sure 'message' and 'prin1' encode stuff in UTF-8, as parent
   ;; process expects.
   (let ((coding-system-for-write 'utf-8-auto))
@@ -252,7 +252,7 @@ its FINISH-FUNC is nil."
          #'identity async-callback-value (current-buffer))))))
 
 (defun async-message-p (value)
-  "Return true of VALUE is an async.el message packet."
+  "Return non-nil of VALUE is an async.el message packet."
   (and (listp value)
        (plist-get value :async-message)))
 
@@ -270,7 +270,7 @@ its FINISH-FUNC is nil."
 
 ;;;###autoload
 (defun async-start-process (name program finish-func &rest program-args)
-  "Start the executable PROGRAM asynchronously.  See `async-start'.
+  "Start the executable PROGRAM asynchronously named NAME.  See `async-start'.
 PROGRAM is passed PROGRAM-ARGS, calling FINISH-FUNC with the
 process object when done.  If FINISH-FUNC is nil, the future
 object will return the process object when the program is
