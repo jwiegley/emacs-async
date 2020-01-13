@@ -91,9 +91,9 @@ All *.elc files are systematically deleted before proceeding."
                          (cl-incf n)))
                      (if (> n 0)
                          (message "Failed to compile %d files in directory `%s'" n directory)
-                         (message "Directory `%s' compiled asynchronously with warnings" directory)))))
-               (unless quiet
-                 (message "Directory `%s' compiled asynchronously with success" directory))))))
+                       (message "Directory `%s' compiled asynchronously with warnings" directory)))))
+             (unless quiet
+               (message "Directory `%s' compiled asynchronously with success" directory))))))
     (async-start
      `(lambda ()
         (require 'bytecomp)
@@ -151,18 +151,18 @@ All *.elc files are systematically deleted before proceeding."
           ;; `async-byte-recompile-directory' will add directory
           ;; as needed to `load-path'.
           (async-byte-recompile-directory (package-desc-dir pkg-desc) t))
-        ad-do-it)))
+      ad-do-it)))
 
 ;;;###autoload
 (define-minor-mode async-bytecomp-package-mode
-    "Byte compile asynchronously packages installed with package.el.
+  "Byte compile asynchronously packages installed with package.el.
 Async compilation of packages can be controlled by
 `async-bytecomp-allowed-packages'."
   :group 'async
   :global t
   (if async-bytecomp-package-mode
       (ad-activate 'package--compile)
-      (ad-deactivate 'package--compile)))
+    (ad-deactivate 'package--compile)))
 
 ;;;###autoload
 (defun async-byte-compile-file (file)
