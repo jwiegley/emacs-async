@@ -47,7 +47,42 @@
   ;; they get compiled asynchronously, so this conservative default value is
   ;; here to make sure that the mode can be enabled without the user's
   ;; explicit consent.
-  '(async forge helm helm-core helm-ls-git helm-ls-hg magit)
+  '(async
+    dap-mode
+    forge
+    helm
+    helm-core
+    helm-ls-git
+    helm-ls-hg
+    helm-lsp
+    lsp-dart
+    lsp-docker
+    lsp-elixir
+    lsp-focus
+    lsp-haskell
+    lsp-intellij
+    lsp-ivy
+    lsp-java
+    lsp-javacomp
+    lsp-jedi
+    lsp-julia
+    lsp-latex
+    lsp-metals
+    lsp-mode
+    lsp-mssql
+    lsp-origami
+    lsp-p4
+    lsp-pascal
+    lsp-protocol
+    lsp-pyre
+    lsp-pyright
+    lsp-python-ms
+    lsp-scala
+    lsp-sonarlint
+    lsp-sourcekit
+    lsp-treemacs
+    lsp-ui
+    magit)
   "Packages in this list will be compiled asynchronously by `package--compile'.
 All the dependencies of these packages will be compiled async too,
 so no need to add dependencies to this list.
