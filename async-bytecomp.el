@@ -41,17 +41,11 @@
 (require 'cl-lib)
 (require 'async)
 
-(defcustom async-bytecomp-allowed-packages
-  ;; FIXME: Arguably the default should be `all', but currently
-  ;; this minor mode is silently/forcefully enabled by Helm and Magit to ensure
-  ;; they get compiled asynchronously, so this conservative default value is
-  ;; here to make sure that the mode can be enabled without the user's
-  ;; explicit consent.
-  '(async forge helm helm-core helm-ls-git helm-ls-hg magit)
+(defcustom async-bytecomp-allowed-packages 'all
   "Packages in this list will be compiled asynchronously by `package--compile'.
 All the dependencies of these packages will be compiled async too,
 so no need to add dependencies to this list.
-The value of this variable can also be the symbol `all', in this case
+The value of this variable can also be the symbol `all' (default), in this case
 all packages are always compiled asynchronously."
   :group 'async
   :type '(choice
