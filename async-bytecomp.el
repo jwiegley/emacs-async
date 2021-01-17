@@ -91,7 +91,7 @@ All *.elc files are systematically deleted before proceeding."
     (async-start
      `(lambda ()
         (require 'bytecomp)
-        ,(async-inject-variables "\\`\\(load-path\\)\\|byte\\'")
+        ,(async-inject-variables "\\`\\(?:load-path\\'\\|byte-\\)")
         (let ((default-directory (file-name-as-directory ,directory))
               error-data)
           (add-to-list 'load-path default-directory)
