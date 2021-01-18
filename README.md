@@ -14,7 +14,7 @@ Some async applications are provided as well with this package:
 
 # Install
 
-You can install emacs-async package from ELPA or MELPA using package.el.
+You can install emacs-async package from MELPA using package.el.
 
 You can also install from sources, in this case you should install
 using make and make install to ensure emacs-async is intalled in a
