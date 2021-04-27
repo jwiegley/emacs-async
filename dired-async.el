@@ -321,8 +321,8 @@ ESC or `q' to not overwrite any of the remaining files,
                                  do (condition-case err
                                         (funcall fn from dest t)
                                       (file-error
-                                       (dired-log "%s: %s\n" (car err) (cdr err)))
-                                      nil))
+                                       (dired-log "%s: %s\n" (car err) (cdr err))
+                                       nil)))
                         (when (get-buffer dired-log-buffer)
                           (dired-log t)
                           (with-current-buffer dired-log-buffer
