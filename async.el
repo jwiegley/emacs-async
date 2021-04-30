@@ -1,13 +1,14 @@
-;;; async.el --- Asynchronous processing  -*- lexical-binding: t -*-
+;;; async.el --- Asynchronous processing in Emacs -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012-2016 Free Software Foundation, Inc.
+;; Copyright (C) 2012-2019 Free Software Foundation, Inc.
 
 ;; Author: John Wiegley <jwiegley@gmail.com>
 ;; Created: 18 Jun 2012
-;; Version: 1.9.4
-;; Package-Requires: ((emacs "24.3"))
-;; Keywords: convenience async
-;; URL: https://github.com/jwiegley/emacs-async
+;; Version: 1.9.3
+;; Package-Requires: ((cl-lib "0.5") (nadvice "0.3"))
+
+;; Keywords: async
+;; X-URL: https://github.com/jwiegley/emacs-async
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -39,7 +40,6 @@
 
 (defcustom async-variables-noprops-function #'async--purecopy
   "Default function to remove text properties in variables."
-  :group 'async
   :type 'function)
 
 (defvar async-debug nil)
@@ -100,14 +100,14 @@ variable's value with `async-variables-noprops-function'.
 It is intended to be used as follows:
 
     (async-start
-       `(lambda ()
-          (require 'smtpmail)
+       \\=`(lambda ()
+          (require \\='smtpmail)
           (with-temp-buffer
             (insert ,(buffer-substring-no-properties (point-min) (point-max)))
             ;; Pass in the variable environment for smtpmail
-            ,(async-inject-variables \"\\`\\(smtpmail\\|\\(user-\\)?mail\\)-\")
+            ,(async-inject-variables \"\\\\=`\\(smtpmail\\|\\(user-\\)?mail\\)-\")
             (smtpmail-send-it)))
-       'ignore)"
+       \\='ignore)"
   `(setq
     ,@(let (bindings)
         (mapatoms
@@ -175,16 +175,19 @@ It is intended to be used as follows:
           (set (make-local-variable 'async-callback-value-set) t))))))
 
 (defun async--receive-sexp (&optional stream)
-  (let ((sexp (decode-coding-string (base64-decode-string
-                                     (read stream)) 'utf-8-auto))
-        ;; Parent expects UTF-8 encoded text.
-        (coding-system-for-write 'utf-8-auto))
+  ;; FIXME: Why use `utf-8-auto' instead of `utf-8-unix'?  This is
+  ;; a communication channel over which we have complete control,
+  ;; so we get to choose exactly which encoding and EOL we use, isn't it?
+  (let ((sexp (decode-coding-string (base64-decode-string (read stream))
+	                            'utf-8-auto))
+	;; Parent expects UTF-8 encoded text.
+	(coding-system-for-write 'utf-8-auto))
     (if async-debug
         (message "Received sexp {{{%s}}}" (pp-to-string sexp)))
     (setq sexp (read sexp))
     (if async-debug
         (message "Read sexp {{{%s}}}" (pp-to-string sexp)))
-    (eval sexp)))
+    (eval sexp t)))
 
 (defun async--insert-sexp (sexp)
   (let (print-level
@@ -226,8 +229,7 @@ It is intended to be used as follows:
 (defun async-ready (future)
   "Query a FUTURE to see if it is ready.
 
-I.e., if no blocking
-would result from a call to `async-get' on that FUTURE."
+I.e., if no blocking would result from a call to `async-get' on that FUTURE."
   (and (memq (process-status future) '(exit signal))
        (let ((buf (process-buffer future)))
          (if (buffer-live-p buf)
@@ -333,7 +335,7 @@ will leave *emacs* process buffers hanging around):
     (async-start
      (lambda ()
        (delete-file \"a remote file on a slow link\" nil))
-     'ignore)
+     \\='ignore)
 
 Note: Even when FINISH-FUNC is present, a future is still
 returned except that it yields no value (since the value is
