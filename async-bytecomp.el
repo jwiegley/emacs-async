@@ -41,6 +41,9 @@
 (require 'cl-lib)
 (require 'async)
 
+(declare-function package-desc-name "package.el")
+(declare-function package-desc-dir "package.el")
+
 (defcustom async-bytecomp-allowed-packages 'all
   "Packages in this list will be compiled asynchronously by `package--compile'.
 All the dependencies of these packages will be compiled async too,
