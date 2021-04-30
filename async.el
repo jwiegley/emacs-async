@@ -4,8 +4,8 @@
 
 ;; Author: John Wiegley <jwiegley@gmail.com>
 ;; Created: 18 Jun 2012
-;; Version: 1.9.3
-;; Package-Requires: ((cl-lib "0.5") (nadvice "0.3"))
+;; Version: 1.9.5
+;; Package-Requires: ((emacs "24.3"))
 
 ;; Keywords: async
 ;; X-URL: https://github.com/jwiegley/emacs-async
