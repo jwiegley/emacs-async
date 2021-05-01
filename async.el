@@ -5,7 +5,7 @@
 ;; Author: John Wiegley <jwiegley@gmail.com>
 ;; Created: 18 Jun 2012
 ;; Version: 1.9.5
-;; Package-Requires: ((emacs "24.3"))
+;; Package-Requires: ((emacs "24.4"))
 
 ;; Keywords: async
 ;; X-URL: https://github.com/jwiegley/emacs-async
