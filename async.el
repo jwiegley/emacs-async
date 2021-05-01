@@ -179,9 +179,9 @@ It is intended to be used as follows:
   ;; a communication channel over which we have complete control,
   ;; so we get to choose exactly which encoding and EOL we use, isn't it?
   (let ((sexp (decode-coding-string (base64-decode-string (read stream))
-	                            'utf-8-auto))
-	;; Parent expects UTF-8 encoded text.
-	(coding-system-for-write 'utf-8-auto))
+                                    'utf-8-auto))
+        ;; Parent expects UTF-8 encoded text.
+        (coding-system-for-write 'utf-8-auto))
     (if async-debug
         (message "Received sexp {{{%s}}}" (pp-to-string sexp)))
     (setq sexp (read sexp))
