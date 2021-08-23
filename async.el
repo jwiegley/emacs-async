@@ -175,8 +175,8 @@ It is intended to be used as follows:
                 ;; can parse it to restitute marker.
                 (while (re-search-forward "#<\\([^>]*\\)>" nil t)
                   (replace-match (concat "(" (match-string 1) ")") t t)))
-              (while (re-search-forward "#" nil t)
-                (replace-match "" t t))
+              (while (re-search-forward "#(" nil t)
+                (replace-match "(" t t))
               (goto-char (point-max))
               (backward-sexp)
               (async-handle-result async-callback (read (current-buffer))
