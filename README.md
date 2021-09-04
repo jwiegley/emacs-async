@@ -17,7 +17,7 @@ Some async applications are provided as well with this package:
 You can install emacs-async package from MELPA using package.el.
 
 You can also install from sources, in this case you should install
-using make and make install to ensure emacs-async is intalled in a
+using make and make install to ensure emacs-async is installed in a
 standard load-path destination where other packages can find it
 easily when compiling.
 
@@ -28,7 +28,7 @@ Add to your `.emacs.el`:
     (autoload 'dired-async-mode "dired-async.el" nil t)
     (dired-async-mode 1)
 
-This will allow you to run  asynchronously
+This will allow you to run asynchronously
 the dired commands for copying, renaming and symlinking.
 If you are a [helm](https://github.com/emacs-helm/helm) user, this will allow you
 to copy, rename etc... asynchronously from [helm](https://github.com/emacs-helm/helm).
