@@ -56,6 +56,9 @@ all packages are always compiled asynchronously."
 (defvar async-byte-compile-log-file
   (concat user-emacs-directory "async-bytecomp.log"))
 
+(defvar async-bytecomp-load-variable-regexp "\\`load-path\\'"
+  "The variable used by `async-inject-variables' when (re)compiling async.")
+
 ;;;###autoload
 (defun async-byte-recompile-directory (directory &optional quiet)
   "Compile all *.el files in DIRECTORY asynchronously.
@@ -92,7 +95,7 @@ All *.elc files are systematically deleted before proceeding."
     (async-start
      `(lambda ()
         (require 'bytecomp)
-        ,(async-inject-variables "\\`\\(?:load-path\\'\\|byte-\\)")
+        ,(async-inject-variables async-bytecomp-load-variable-regexp)
         (let ((default-directory (file-name-as-directory ,directory))
               error-data)
           (add-to-list 'load-path default-directory)
@@ -189,7 +192,7 @@ Same as `byte-compile-file' but asynchronous."
     (async-start
      `(lambda ()
         (require 'bytecomp)
-        ,(async-inject-variables "\\`load-path\\'")
+        ,(async-inject-variables async-bytecomp-load-variable-regexp)
         (let ((default-directory ,(file-name-directory file)))
           (add-to-list 'load-path default-directory)
           (byte-compile-file ,file)
