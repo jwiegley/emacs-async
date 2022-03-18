@@ -3,7 +3,7 @@
 ;; Copyright (C) 2014-2019 Free Software Foundation, Inc.
 
 ;; Authors: John Wiegley <jwiegley@gmail.com>
-;;          Thierry Volpiatto <thierry.volpiatto@gmail.com>
+;;          Thierry Volpiatto <thievol@posteo.net>
 
 ;; Keywords: dired async byte-compile
 ;; X-URL: https://github.com/jwiegley/dired-async
