@@ -38,6 +38,7 @@
 
 (require 'cl-lib)
 (require 'async)
+(require 'bytecomp)
 
 (declare-function package-desc-name "package.el")
 (declare-function package-desc-dir "package.el")
