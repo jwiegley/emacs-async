@@ -232,15 +232,17 @@ It is intended to be used as follows:
   ;; process expects.
   (let ((coding-system-for-write 'utf-8-auto))
     (setq async-in-child-emacs t
-          debug-on-error async-debug)
+          debug-on-error async-debug
+          args command-line-args-left
+          command-line-args-left nil)
     (if debug-on-error
         (prin1 (funcall
                 (async--receive-sexp (unless async-send-over-pipe
-                                       command-line-args-left))))
+                                       args))))
       (condition-case err
           (prin1 (funcall
                   (async--receive-sexp (unless async-send-over-pipe
-                                         command-line-args-left))))
+                                         args))))
         (error
          (prin1 (list 'async-signal err)))))))
 
