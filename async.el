@@ -230,19 +230,17 @@ It is intended to be used as follows:
   "Called from the child Emacs process' command line."
   ;; Make sure 'message' and 'prin1' encode stuff in UTF-8, as parent
   ;; process expects.
-  (let ((coding-system-for-write 'utf-8-auto))
+  (let ((coding-system-for-write 'utf-8-auto)
+        (args-left command-line-args-left))
     (setq async-in-child-emacs t
-          debug-on-error async-debug)
-    (if debug-on-error
+          debug-on-error async-debug
+          command-line-args-left nil)
+    (condition-case-unless-debug err
         (prin1 (funcall
                 (async--receive-sexp (unless async-send-over-pipe
-                                       command-line-args-left))))
-      (condition-case err
-          (prin1 (funcall
-                  (async--receive-sexp (unless async-send-over-pipe
-                                         command-line-args-left))))
-        (error
-         (prin1 (list 'async-signal err)))))))
+                                       args-left))))
+      (error
+       (prin1 (list 'async-signal err))))))
 
 (defun async-ready (future)
   "Query a FUTURE to see if it is ready.
