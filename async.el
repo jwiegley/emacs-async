@@ -36,7 +36,7 @@
 
 (defgroup async nil
   "Simple asynchronous processing in Emacs"
-  :group 'emacs)
+  :group 'lisp)
 
 (defcustom async-variables-noprops-function #'async--purecopy
   "Default function to remove text properties in variables."
