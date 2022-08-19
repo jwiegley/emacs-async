@@ -1,4 +1,5 @@
 <p><a href="http://www.gnu.org/licenses/gpl-3.0.txt"><img src="https://img.shields.io/badge/license-GPL_3-green.svg" alt="License GPL 3" /></a>
+<a href="https://elpa.gnu.org/packages/async.html"><img src="https://elpa.gnu.org/packages/async.svg" alt="GNU ELPA" title="" /></a>
 <a href="http://melpa.org/#/async"><img src="http://melpa.org/packages/async-badge.svg" alt="MELPA" title="" /></a>
 <a href="http://stable.melpa.org/#/async"><img src="http://stable.melpa.org/packages/async-badge.svg" alt="MELPA Stable" title="" /></a></p>
 
@@ -14,10 +15,10 @@ Some async applications are provided as well with this package:
 
 # Install
 
-You can install emacs-async package from ELPA or MELPA using package.el.
+You can install emacs-async package from MELPA using package.el.
 
 You can also install from sources, in this case you should install
-using make and make install to ensure emacs-async is intalled in a
+using make and make install to ensure emacs-async is installed in a
 standard load-path destination where other packages can find it
 easily when compiling.
 
@@ -28,7 +29,7 @@ Add to your `.emacs.el`:
     (autoload 'dired-async-mode "dired-async.el" nil t)
     (dired-async-mode 1)
 
-This will allow you to run  asynchronously
+This will allow you to run asynchronously
 the dired commands for copying, renaming and symlinking.
 If you are a [helm](https://github.com/emacs-helm/helm) user, this will allow you
 to copy, rename etc... asynchronously from [helm](https://github.com/emacs-helm/helm).

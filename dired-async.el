@@ -1,26 +1,25 @@
 ;;; dired-async.el --- Asynchronous dired actions -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012-2016 Free Software Foundation, Inc.
+;; Copyright (C) 2012-2019 Free Software Foundation, Inc.
 
 ;; Authors: John Wiegley <jwiegley@gmail.com>
-;;          Thierry Volpiatto <thierry.volpiatto@gmail.com>
+;;          Thierry Volpiatto <thievol@posteo.net>
 
 ;; Keywords: dired async network
 ;; X-URL: https://github.com/jwiegley/dired-async
 
-;; This program is free software; you can redistribute it and/or
-;; modify it under the terms of the GNU General Public License as
-;; published by the Free Software Foundation; either version 2, or (at
-;; your option) any later version.
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
 
-;; This program is distributed in the hope that it will be useful, but
-;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; General Public License for more details.
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, see
-;; <https://www.gnu.org/licenses/>.
+;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -51,46 +50,38 @@
 (defcustom dired-async-env-variables-regexp
   "\\`\\(tramp-\\(default\\|connection\\|remote\\)\\|ange-ftp\\)-.*"
   "Variables matching this regexp will be loaded on Child Emacs."
-  :type  'regexp
-  :group 'dired-async)
+  :type  'regexp)
 
 (defcustom dired-async-message-function 'dired-async-mode-line-message
   "Function to use to notify result when operation finish.
 Should take same args as `message'."
-  :group 'dired-async
   :type  'function)
 
 (defcustom dired-async-log-file "/tmp/dired-async.log"
   "File use to communicate errors from Child Emacs to host Emacs."
-  :group 'dired-async
   :type 'string)
 
 (defcustom dired-async-mode-lighter '(:eval
                                       (when (eq major-mode 'dired-mode)
                                         " Async"))
   "Mode line lighter used for `dired-async-mode'."
-  :group 'dired-async
   :risky t
   :type 'sexp)
 
 (defface dired-async-message
-  '((t (:foreground "yellow")))
-  "Face used for mode-line message."
-  :group 'dired-async)
+    '((t (:foreground "yellow")))
+  "Face used for mode-line message.")
 
 (defface dired-async-failures
-  '((t (:foreground "red")))
-  "Face used for mode-line message."
-  :group 'dired-async)
+    '((t (:foreground "red")))
+  "Face used for mode-line message.")
 
 (defface dired-async-mode-message
-  '((t (:foreground "Gold")))
-  "Face used for `dired-async--modeline-mode' lighter."
-  :group 'dired-async)
+    '((t (:foreground "Gold")))
+  "Face used for `dired-async--modeline-mode' lighter.")
 
 (define-minor-mode dired-async--modeline-mode
-  "Notify mode-line that an async process run."
-  :group 'dired-async
+    "Notify mode-line that an async process run."
   :global t
   :lighter (:eval (propertize (format " [%s Async job(s) running]"
                                       (length (dired-async-processes)))
@@ -320,8 +311,8 @@ ESC or `q' to not overwrite any of the remaining files,
                                  do (condition-case err
                                         (funcall fn from dest t)
                                       (file-error
-                                       (dired-log "%s: %s\n" (car err) (cdr err)))
-                                      nil))
+                                       (dired-log "%s: %s\n" (car err) (cdr err))
+                                       nil)))
                         (when (get-buffer dired-log-buffer)
                           (dired-log t)
                           (with-current-buffer dired-log-buffer
@@ -342,31 +333,18 @@ ESC or `q' to not overwrite any of the remaining files,
   (let (wdired-use-interactive-rename)
     (apply old-fn args)))
 
-(defadvice wdired-do-renames (around wdired-async)
-  (let (wdired-use-interactive-rename)
-    ad-do-it))
-
-(defadvice dired-create-files (around dired-async)
-  (dired-async-create-files file-creator operation fn-list
-                            name-constructor marker-char))
-
 ;;;###autoload
 (define-minor-mode dired-async-mode
   "Do dired actions asynchronously."
-  :group 'dired-async
   :lighter dired-async-mode-lighter
   :global t
   (if dired-async-mode
-      (if (fboundp 'advice-add)
-          (progn (advice-add 'dired-create-files :override #'dired-async-create-files)
-                 (advice-add 'wdired-do-renames :around #'dired-async-wdired-do-renames))
-        (ad-activate 'dired-create-files)
-        (ad-activate 'wdired-do-renames))
-    (if (fboundp 'advice-remove)
-        (progn (advice-remove 'dired-create-files #'dired-async-create-files)
-               (advice-remove 'wdired-do-renames #'dired-async-wdired-do-renames))
-      (ad-deactivate 'dired-create-files)
-      (ad-deactivate 'wdired-do-renames))))
+      (progn
+        (advice-add 'dired-create-files :override #'dired-async-create-files)
+        (advice-add 'wdired-do-renames :around #'dired-async-wdired-do-renames))
+    (progn
+      (advice-remove 'dired-create-files #'dired-async-create-files)
+      (advice-remove 'wdired-do-renames #'dired-async-wdired-do-renames))))
 
 (defmacro dired-async--with-async-create-files (&rest body)
   "Evaluate BODY with ‘dired-create-files’ set to ‘dired-async-create-files’."

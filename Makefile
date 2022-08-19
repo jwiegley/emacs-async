@@ -60,7 +60,7 @@ clean:
 
 # Make autoloads file
 autoloads:
-	$(EVAL) "(progn (setq generated-autoload-file (expand-file-name \"helm-autoloads.el\" \"$(PKGDIR)\")) \
+	$(EVAL) "(progn (setq generated-autoload-file (expand-file-name \"async-autoloads.el\" \"$(PKGDIR)\")) \
 (setq backup-inhibited t) (update-directory-autoloads \"$(PKGDIR)\"))"
 
 PREFIX=/usr/local/share/
