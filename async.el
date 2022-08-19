@@ -1,12 +1,12 @@
 ;;; async.el --- Asynchronous processing in Emacs -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012-2019 Free Software Foundation, Inc.
+;; Copyright (C) 2012-2022 Free Software Foundation, Inc.
 
 ;; Author: John Wiegley <jwiegley@gmail.com>
 ;; Maintainer: Thierry Volpiatto <thievol@posteo.net>
 
 ;; Created: 18 Jun 2012
-;; Version: 1.9.5
+;; Version: 1.9.6
 ;; Package-Requires: ((emacs "24.4"))
 
 ;; Keywords: async

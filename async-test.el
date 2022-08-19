@@ -1,10 +1,9 @@
 ;;; async-test.el --- async.el-related tests  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2012-2019 Free Software Foundation, Inc.
+;; Copyright (C) 2012-2022 Free Software Foundation, Inc.
 
 ;; Author: John Wiegley <jwiegley@gmail.com>
 ;; Created: 10 Jul 2012
-;; Version: 1.0
 ;; Keywords: async
 ;; X-URL: https://github.com/jwiegley/emacs-async
 

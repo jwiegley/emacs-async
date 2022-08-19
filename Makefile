@@ -1,7 +1,7 @@
 # makefile for async.
 
 # Author: Thierry Volpiatto.
-# Copyright (C) 2011~2017, Thierry Volpiatto, all rights reserved.
+# Copyright (C) 2011~2022, Thierry Volpiatto, all rights reserved.
 
 ## This file is NOT part of GNU Emacs
 ##
