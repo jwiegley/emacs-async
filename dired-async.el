@@ -71,7 +71,7 @@ Should take same args as `message'."
 (defcustom dired-async-skip-fast t
   "If non-nil, skip async for fast operations.
 Same device renames and copying and renaming files smaller than
-`dired-async-large-file' are considered fast."
+`dired-async-small-file-max' are considered fast."
   :risky t
   :type 'bool)
 
@@ -204,7 +204,6 @@ See `file-attributes'."
     ;; Directories are always large since we can't easily figure out
     ;; their total size.
     (and (not (dired-async--directory-p a))
-         ;; 5 MB
          (< (file-attribute-size a) dired-async-small-file-max))))
 
 (defun dired-async--skip-async-p (file-creator file name-constructor)
