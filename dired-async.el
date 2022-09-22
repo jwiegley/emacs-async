@@ -217,15 +217,18 @@ See `dired-create-files' for FILE-CREATOR and NAME-CONSTRUCTOR."
              (dired-async--same-device-p file (file-name-directory new))))))
 
 (defun dired-async--smart-create-files (old-func file-creator operation fn-list name-constructor
-                                                 &optional marker-char)
+                                        &optional marker-char)
   "Around advice for `dired-create-files'.
 Uses async like `dired-async-create-files' but skips certain fast
 cases if `dired-async-skip-fast' is non-nil."
   (let (async-list quick-list)
-    (dolist (old fn-list)
-      (if (dired-async--skip-async-p file-creator old name-constructor)
-          (push old quick-list)
-        (push old async-list)))
+    (if (or (eq file-creator 'backup-file)
+            (null dired-async-skip-fast))
+        (setq async-list fn-list)
+      (dolist (old fn-list)
+        (if (dired-async--skip-async-p file-creator old name-constructor)
+            (push old quick-list)
+          (push old async-list))))
     (when async-list
       (dired-async-create-files file-creator operation (nreverse async-list) name-constructor marker-char))
     (when quick-list
