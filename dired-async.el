@@ -68,7 +68,7 @@ Should take same args as `message'."
   :risky t
   :type 'sexp)
 
-(defcustom dired-async-skip-fast t
+(defcustom dired-async-skip-fast nil
   "If non-nil, skip async for fast operations.
 Same device renames and copying and renaming files smaller than
 `dired-async-small-file-max' are considered fast."
