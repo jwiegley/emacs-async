@@ -51,6 +51,13 @@
 (defvar async-callback-value-set nil)
 (defvar async-current-process nil)
 (defvar async--procvar nil)
+(defvar async-child-init nil
+  "Initialisation file for async child Emacs.
+
+If defined this allows for an init file to setup the child Emacs. It
+should not be your normal init.el as that would likely load more
+things that you require. It should limit itself to ensuring paths have
+been setup so any async code can load libraries you expect.")
 
 ;; For emacs<29 (only exists in emacs-29+).
 (defvar print-symbols-bare)
@@ -310,6 +317,20 @@ Can be one of \"-Q\" or \"-q\".
 Default is \"-Q\" but it is sometimes useful to use \"-q\" to have a
 enhanced config or some more variables loaded.")
 
+(defun async--emacs-program-args (&optional sexp)
+  "Return a list of arguments for invoking the child Emacs."
+  ;; Using `locate-library' ensure we use the right file
+  ;; when the .elc have been deleted.
+  (let ((args (list async-quiet-switch "-l" (locate-library "async"))))
+    (when async-child-init
+      (setq args (append args (list "-l" async-child-init))))
+    (append args (list "-batch" "-f" "async-batch-invoke"
+                       (if sexp
+                           (with-temp-buffer
+                             (async--insert-sexp (list 'quote sexp))
+                             (buffer-string))
+                           "<none>")))))
+
 ;;;###autoload
 (defun async-start (start-func &optional finish-func)
   "Execute START-FUNC (often a lambda) in a subordinate Emacs process.
@@ -373,21 +394,13 @@ returns nil.  It can still be useful, however, as an argument to
         ;; Subordinate Emacs will send text encoded in UTF-8.
         (coding-system-for-read 'utf-8-auto))
     (setq async--procvar
-          (async-start-process
-           "emacs" (file-truename
-                    (expand-file-name invocation-name
-                                      invocation-directory))
-           finish-func
-           async-quiet-switch "-l"
-           ;; Using `locate-library' ensure we use the right file
-           ;; when the .elc have been deleted.
-           (locate-library "async")
-           "-batch" "-f" "async-batch-invoke"
-           (if async-send-over-pipe
-               "<none>"
-             (with-temp-buffer
-               (async--insert-sexp (list 'quote sexp))
-               (buffer-string)))))
+          (apply 'async-start-process
+                 "emacs" (file-truename
+                          (expand-file-name invocation-name
+                                            invocation-directory))
+                 finish-func
+                 (async--emacs-program-args (if (not async-send-over-pipe) sexp))))
+
     (if async-send-over-pipe
         (async--transmit-sexp async--procvar (list 'quote sexp)))
     async--procvar))
