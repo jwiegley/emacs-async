@@ -196,7 +196,7 @@ See `file-attributes'."
 (defsubst dired-async--same-device-p (f1 f2)
   "Return non-nil if F1 and F2 have the same device number."
   ;; file-attribute-device-number may be a cons cell, so use equal for
-  ;; testing (this is probably an emacs bug if we refer to its doctring).
+  ;; testing (See Emacs bug/58446).
   (equal (file-attribute-device-number (file-attributes f1))
          (file-attribute-device-number (file-attributes f2))))
 
