@@ -1,4 +1,5 @@
 <p><a href="http://www.gnu.org/licenses/gpl-3.0.txt"><img src="https://img.shields.io/badge/license-GPL_3-green.svg" alt="License GPL 3" /></a>
+<a href="https://elpa.gnu.org/packages/async.html"><img src="https://elpa.gnu.org/packages/async.svg" alt="GNU ELPA" title="" /></a>
 <a href="http://melpa.org/#/async"><img src="http://melpa.org/packages/async-badge.svg" alt="MELPA" title="" /></a>
 <a href="http://stable.melpa.org/#/async"><img src="http://stable.melpa.org/packages/async-badge.svg" alt="MELPA Stable" title="" /></a></p>
 
@@ -14,6 +15,13 @@ Some async applications are provided as well with this package:
 
 # Install
 
+You can install emacs-async package from MELPA using package.el.
+
+You can also install from sources, in this case you should install
+using make and make install to ensure emacs-async is installed in a
+standard load-path destination where other packages can find it
+easily when compiling.
+
 ## Install dired-async
 
 Add to your `.emacs.el`:
@@ -21,7 +29,7 @@ Add to your `.emacs.el`:
     (autoload 'dired-async-mode "dired-async.el" nil t)
     (dired-async-mode 1)
 
-This will allow you to run  asynchronously
+This will allow you to run asynchronously
 the dired commands for copying, renaming and symlinking.
 If you are a [helm](https://github.com/emacs-helm/helm) user, this will allow you
 to copy, rename etc... asynchronously from [helm](https://github.com/emacs-helm/helm).
@@ -33,6 +41,37 @@ If you don't want to make dired/helm asynchronous disable it with `dired-async-m
 ### Debian and Ubuntu
 
 Users of Debian 9 or later or Ubuntu 16.04 or later may simply `apt-get install elpa-async`.
+
+## Authentication and user interaction
+
+Some authentications require user interaction, for example answering to a
+prompt, entering a passwords etc. Your async implementation should
+avoid any such user interaction, to avoid being stuck with a prompt you
+will not be able to answer to in the child emacs.  For all what is remote
+(mails, tramp etc...) you have to let emacs manage your identification
+with [auth-sources](https://www.gnu.org/software/emacs/manual/html_mono/auth.html), so that you do not have to enter a password.
+
+Basically all you need is something like this in your init file:
+
+    (use-package auth-source
+      :no-require t
+      :config (setq auth-sources '("~/.authinfo.gpg" "~/.netrc")))
+
+And a "~/.authinfo.gpg" file containing entries such as
+
+    default port sudo login root password xxxxxxxx
+    
+or
+
+    machine xxxxx port xxx login xxx password xxxxxxx
+
+for more specific hosts (smtp, mails etc...)
+
+See [auth-sources manual](https://www.gnu.org/software/emacs/manual/html_mono/auth.html) for more infos.
+
+NOTE: For all your async implementations in emacs-26+ versions that
+handle remote files (tramp), you will have to let-bind
+`async-quiet-switch` to `-q` to workaround a tramp bug that prevent `emacs -Q` to use [auth-sources](https://www.gnu.org/software/emacs/manual/html_mono/auth.html) mechanism.
 
 ## Enable asynchronous compilation of your (M)elpa packages
 
@@ -50,6 +89,23 @@ to do this, add to your init file:
 
 You can control which packages will compile async with `async-bytecomp-allowed-packages`.
 Set it to `'(all)` to be sure you will compile all packages asynchronously.
+
+## Send mails asynchronously with smtp mail async
+
+To enable this feature, ensure smtp-mail-async.el is loaded and use
+
+`(setq message-send-mail-function 'async-smtpmail-send-it)`.
+
+WARNINGS:
+
+- When using recent emacs (25+) the network security manager maybe
+called interactively in child emacs and make `async-smtpmail-send-it`
+fail, so be sure to send email once synchronously before using
+`async-smtpmail-send-it` as your `message-send-mail-function`.
+
+- You may loose your sent mail if your network is down, so ensure to
+queue your mails if so.  you can do this automatically,
+see [issue #64](https://github.com/jwiegley/emacs-async/issues/64).
 
 # Async usage
 
