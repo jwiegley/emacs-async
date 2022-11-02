@@ -117,8 +117,7 @@ or rename for `dired-async-skip-fast'."
 
 (defun dired-async-processes ()
   (cl-loop for p in (process-list)
-           when (cl-loop for c in (process-command p) thereis
-                         (string= "async-batch-invoke" c))
+           when (process-get p 'dired-async-process)
            collect p))
 
 (defun dired-async-kill-process ()
@@ -348,47 +347,49 @@ ESC or `q' to not overwrite any of the remaining files,
                                    (set-visited-file-name to t t))))))))
     ;; Start async process.
     (when async-fn-list
-      (async-start `(lambda ()
-                      (require 'cl-lib) (require 'dired-aux) (require 'dired-x)
-                      ,(async-inject-variables dired-async-env-variables-regexp)
-                      (let ((dired-recursive-copies (quote always))
-                            (dired-copy-preserve-time
-                             ,dired-copy-preserve-time))
-                        (setq overwrite-backup-query nil)
-                        ;; Inline `backup-file' as long as it is not
-                        ;; available in emacs.
-                        (defalias 'backup-file
-                          ;; Same feature as "cp -f --backup=numbered from to"
-                          ;; Symlinks are copied as file from source unlike
-                          ;; `dired-copy-file' which is same as cp -d.
-                          ;; Directories are omitted.
-                          (lambda (from to ok)
-                            (cond ((file-directory-p from) (ignore))
-                                  (t (let ((count 0))
-                                       (while (let ((attrs (file-attributes to)))
-                                                (and attrs (null (nth 0 attrs))))
-                                         (cl-incf count)
-                                         (setq to (concat (file-name-sans-versions to)
-                                                          (format ".~%s~" count)))))
-                                     (condition-case err
-                                         (copy-file from to ok dired-copy-preserve-time)
-                                       (file-date-error
-                                        (dired-log "Can't set date on %s:\n%s\n" from err)))))))
-                        ;; Now run the FILE-CREATOR function on files.
-                        (cl-loop with fn = (quote ,file-creator)
-                                 for (from . dest) in (quote ,async-fn-list)
-                                 do (condition-case err
-                                        (funcall fn from dest t)
-                                      (file-error
-                                       (dired-log "%s: %s\n" (car err) (cdr err))
-                                       nil)))
-                        (when (get-buffer dired-log-buffer)
-                          (dired-log t)
-                          (with-current-buffer dired-log-buffer
-                            (write-region (point-min) (point-max)
-                                          ,dired-async-log-file))))
-                      ,(dired-async-maybe-kill-ftp))
-                   callback)
+      (process-put
+       (async-start `(lambda ()
+                       (require 'cl-lib) (require 'dired-aux) (require 'dired-x)
+                       ,(async-inject-variables dired-async-env-variables-regexp)
+                       (let ((dired-recursive-copies (quote always))
+                             (dired-copy-preserve-time
+                              ,dired-copy-preserve-time))
+                         (setq overwrite-backup-query nil)
+                         ;; Inline `backup-file' as long as it is not
+                         ;; available in emacs.
+                         (defalias 'backup-file
+                           ;; Same feature as "cp -f --backup=numbered from to"
+                           ;; Symlinks are copied as file from source unlike
+                           ;; `dired-copy-file' which is same as cp -d.
+                           ;; Directories are omitted.
+                           (lambda (from to ok)
+                             (cond ((file-directory-p from) (ignore))
+                                   (t (let ((count 0))
+                                        (while (let ((attrs (file-attributes to)))
+                                                 (and attrs (null (nth 0 attrs))))
+                                          (cl-incf count)
+                                          (setq to (concat (file-name-sans-versions to)
+                                                           (format ".~%s~" count)))))
+                                      (condition-case err
+                                          (copy-file from to ok dired-copy-preserve-time)
+                                        (file-date-error
+                                         (dired-log "Can't set date on %s:\n%s\n" from err)))))))
+                         ;; Now run the FILE-CREATOR function on files.
+                         (cl-loop with fn = (quote ,file-creator)
+                                  for (from . dest) in (quote ,async-fn-list)
+                                  do (condition-case err
+                                         (funcall fn from dest t)
+                                       (file-error
+                                        (dired-log "%s: %s\n" (car err) (cdr err))
+                                        nil)))
+                         (when (get-buffer dired-log-buffer)
+                           (dired-log t)
+                           (with-current-buffer dired-log-buffer
+                             (write-region (point-min) (point-max)
+                                           ,dired-async-log-file))))
+                       ,(dired-async-maybe-kill-ftp))
+                    callback)
+       'dired-async-process t)
       ;; Run mode-line notifications while process running.
       (dired-async--modeline-mode 1)
       (message "%s proceeding asynchronously..." operation))))
