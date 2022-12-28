@@ -282,7 +282,7 @@ its FINISH-FUNC is nil."
        (plist-get value :async-message)))
 
 (defun async-send (&rest args)
-  "Send the given messages to the asychronous Emacs PROCESS."
+  "Send the given messages to the asynchronous Emacs PROCESS."
   (let ((args (append args '(:async-message t))))
     (if async-in-child-emacs
         (if async-callback
@@ -290,7 +290,7 @@ its FINISH-FUNC is nil."
       (async--transmit-sexp (car args) (list 'quote (cdr args))))))
 
 (defun async-receive ()
-  "Send the given messages to the asychronous Emacs PROCESS."
+  "Send the given messages to the asynchronous Emacs PROCESS."
   (async--receive-sexp))
 
 ;;;###autoload
