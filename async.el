@@ -200,11 +200,14 @@ It is intended to be used as follows:
 (defun async--receive-sexp (&optional stream)
   ;; FIXME: Why use `utf-8-auto' instead of `utf-8-unix'?  This is
   ;; a communication channel over which we have complete control,
-  ;; so we get to choose exactly which encoding and EOL we use, isn't it?
+  ;; so we get to choose exactly which encoding and EOL we use, isn't
+  ;; it?
+  ;; UPDATE: We use now `utf-8-emacs-unix' instead of `utf-8-auto' as
+  ;; recommended in bug#165.
   (let ((sexp (decode-coding-string (base64-decode-string (read stream))
-                                    'utf-8-auto))
+                                    'utf-8-emacs-unix))
         ;; Parent expects UTF-8 encoded text.
-        (coding-system-for-write 'utf-8-auto))
+        (coding-system-for-write 'utf-8-emacs-unix))
     (if async-debug
         (message "Received sexp {{{%s}}}" (pp-to-string sexp)))
     (setq sexp (read sexp))
@@ -221,7 +224,7 @@ It is intended to be used as follows:
         (print-symbols-bare t))
     (prin1 sexp (current-buffer))
     ;; Just in case the string we're sending might contain EOF
-    (encode-coding-region (point-min) (point-max) 'utf-8-auto)
+    (encode-coding-region (point-min) (point-max) 'utf-8-emacs-unix)
     (base64-encode-region (point-min) (point-max) t)
     (goto-char (point-min)) (insert ?\")
     (goto-char (point-max)) (insert ?\" ?\n)))
@@ -237,7 +240,7 @@ It is intended to be used as follows:
   "Called from the child Emacs process' command line."
   ;; Make sure 'message' and 'prin1' encode stuff in UTF-8, as parent
   ;; process expects.
-  (let ((coding-system-for-write 'utf-8-auto)
+  (let ((coding-system-for-write 'utf-8-emacs-unix)
         (args-left command-line-args-left))
     (setq async-in-child-emacs t
           debug-on-error async-debug
@@ -392,7 +395,7 @@ returns nil.  It can still be useful, however, as an argument to
 `async-ready' or `async-wait'."
   (let ((sexp start-func)
         ;; Subordinate Emacs will send text encoded in UTF-8.
-        (coding-system-for-read 'utf-8-auto))
+        (coding-system-for-read 'utf-8-emacs-unix))
     (setq async--procvar
           (apply 'async-start-process
                  "emacs" (file-truename
