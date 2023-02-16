@@ -6,7 +6,7 @@
 ;;          Thierry Volpiatto <thievol@posteo.net>
 
 ;; Keywords: dired async byte-compile
-;; X-URL: https://github.com/jwiegley/dired-async
+;; X-URL: https://github.com/jwiegley/emacs-async
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
