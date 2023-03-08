@@ -301,22 +301,47 @@ its FINISH-FUNC is nil."
          #'identity async-callback-value (current-buffer))))))
 
 (defun async-message-p (value)
-  "Return non-nil of VALUE is an async.el message packet."
+  "Return non-nil if VALUE is an async.el message packet."
   (and (listp value)
        (plist-get value :async-message)))
 
-(defun async-send (&rest args)
-  "Send the given messages to the asynchronous Emacs PROCESS."
+(defun async-send (process-or-key &rest args)
+  "Send the given message to the asychronous child or parent Emacs.
+
+To send messages from the parent to a child, PROCESS-OR-KEY is
+the child process object.  ARGS is a plist.  Example:
+
+  (async-send proc :operation :load-file :file \"this file\")
+
+To send messages from the child to the parent, PROCESS-OR-KEY is
+the first key of the plist, ARGS is a value followed by
+optionally more key-value pairs.  Example:
+
+  (async-send :status \"finished\" :file-size 123)"
   (let ((args (append args '(:async-message t))))
     (if async-in-child-emacs
         (princ
          (with-temp-buffer
-           (async--insert-sexp args)
+           (async--insert-sexp (cons process-or-key args))
            (buffer-string)))
-      (async--transmit-sexp (car args) (list 'quote (cdr args))))))
+      (async--transmit-sexp process-or-key (list 'quote args)))))
 
 (defun async-receive ()
-  "Send the given messages to the asynchronous Emacs PROCESS."
+  "Receive message from parent Emacs.
+
+The child process blocks until a message is received.
+
+Message is a plist with one key :async-message set to t always
+automatically added to signify this plist is an async message.
+
+You can use `async-message-p' to test if the payload was a
+message.
+
+Use
+
+   (let ((msg (async-receive))) ...)
+
+to read and process a message."
   (async--receive-sexp))
 
 ;;;###autoload
