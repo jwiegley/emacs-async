@@ -197,6 +197,27 @@ It is intended to be used as follows:
                              (process-name proc) (process-exit-status proc))))
           (set (make-local-variable 'async-callback-value-set) t))))))
 
+(defun async-read-from-client (proc string)
+  ;; log the message in the process buffer
+  (with-current-buffer (process-buffer proc)
+    (insert string))
+
+  ;; parse message
+  (with-temp-buffer
+    (insert string)
+    (goto-char (point-min))
+    (let (msg)
+      (condition-case nil
+          (while (setq msg (read (current-buffer)))
+            (when-let ((msg-decoded (ignore-errors (base64-decode-string msg))))
+              (setq msg-decoded (car (read-from-string msg-decoded)))
+              (with-current-buffer (process-buffer proc)
+                (when async-callback
+                  (funcall async-callback msg-decoded)))))
+        ;; This is OK, we reached the end of the chunk subprocess sent
+        ;; at this time.
+        (end-of-file t)))))
+
 (defun async--receive-sexp (&optional stream)
   ;; FIXME: Why use `utf-8-auto' instead of `utf-8-unix'?  This is
   ;; a communication channel over which we have complete control,
@@ -288,8 +309,10 @@ its FINISH-FUNC is nil."
   "Send the given messages to the asynchronous Emacs PROCESS."
   (let ((args (append args '(:async-message t))))
     (if async-in-child-emacs
-        (if async-callback
-            (funcall async-callback args))
+        (princ
+         (with-temp-buffer
+           (async--insert-sexp args)
+           (buffer-string)))
       (async--transmit-sexp (car args) (list 'quote (cdr args))))))
 
 (defun async-receive ()
@@ -310,6 +333,7 @@ working directory."
     (with-current-buffer buf
       (set (make-local-variable 'async-callback) finish-func)
       (set-process-sentinel proc #'async-when-done)
+      (set-process-filter proc #'async-read-from-client)
       (unless (string= name "emacs")
         (set (make-local-variable 'async-callback-for-process) t))
       proc)))
