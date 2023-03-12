@@ -46,11 +46,17 @@
 (defvar async-send-over-pipe t)
 (defvar async-in-child-emacs nil)
 (defvar async-callback nil)
-(defvar async-callback-for-process nil)
+(defvar async-callback-for-process nil
+  "Non-nil if the subprocess is not Emacs executing a lisp form.")
 (defvar async-callback-value nil)
 (defvar async-callback-value-set nil)
 (defvar async-current-process nil)
 (defvar async--procvar nil)
+(defvar async-read-marker nil
+  "Position from which we read the last message packet.
+
+Message packets are delivered from client line-by-line as base64
+encoded strings.")
 (defvar async-child-init nil
   "Initialisation file for async child Emacs.
 
@@ -177,6 +183,7 @@ It is intended to be used as follows:
               ;; Maybe strip out unreadable "#"; They are replaced by
               ;; empty string unless they are prefixing a special
               ;; object like a marker. See issue #145.
+              (widen)
               (goto-char (point-min))
               (save-excursion
                 ;; Transform markers in list like
@@ -189,52 +196,57 @@ It is intended to be used as follows:
                 (replace-match "(" t t))
               (goto-char (point-max))
               (backward-sexp)
-              (async-handle-result async-callback (read (current-buffer))
-                                   (current-buffer)))
+              (let ((value (read (current-buffer))))
+                (async-handle-result async-callback value (current-buffer))))
           (set (make-local-variable 'async-callback-value)
                (list 'error
                      (format "Async process '%s' failed with exit code %d"
                              (process-name proc) (process-exit-status proc))))
           (set (make-local-variable 'async-callback-value-set) t))))))
 
-(defun async--process-filter-line-buffering-decorator (filter)
-  "Decorate a process FILTER with line-buffering logic.
-
-Return a new process filter based on FILTER.
-
-FILTER is a function which could be used with `set-process-filter'.
-
-This decorator buffers input until it can pass a complete line
-further to the supplied FILTER.  It is useful as a buffer between
-a process producing data and an Emacs function operating on the
-data which expects to get complete lines as input."
-  (let ((data ""))
-    (lambda (process string)
-      (with-current-buffer (process-buffer process)
-        (insert string))
-
-      (let* ((line-data (split-string (concat data string) "\n")))
-        (while (cdr line-data)
-          (funcall filter process (car line-data))
-          (pop line-data))
-        (setq data (car line-data))))))
-
 (defun async-read-from-client (proc string)
-  ;; parse message
-  (with-temp-buffer
-    (insert string)
-    (goto-char (point-min))
-    (let (msg)
-      (condition-case nil
-          (while (setq msg (read (current-buffer)))
-            (when-let ((msg-decoded (ignore-errors (base64-decode-string msg))))
-              (setq msg-decoded (car (read-from-string msg-decoded)))
-              (with-current-buffer (process-buffer proc)
-                (when async-callback
-                  (funcall async-callback msg-decoded)))))
-        ;; This is OK, we reached the end of the chunk subprocess sent
-        ;; at this time.
-        (end-of-file t)))))
+  "Process text from client process.
+
+The string chunks usually arrive in maximum of 4096 bytes, so a
+long client message might be split into multiple calls of this
+function.
+
+We use a marker `async-read-marker' to track the position of the
+lasts complete line.  Every time we get new input, we try to look
+for newline, and if found, process the entire line and bump the
+marker position to the end of this next line."
+  (with-current-buffer (process-buffer proc)
+    (goto-char (point-max))
+    (save-excursion
+      (insert string))
+
+    (while (search-forward "\n" nil t)
+      (save-excursion
+        (save-restriction
+          (widen)
+          (narrow-to-region async-read-marker (point))
+          (goto-char (point-min))
+          (let (msg)
+            (condition-case nil
+                ;; It is safe to throw errors in the read because we
+                ;; send messages always on their own line, and they
+                ;; are always a base64 encoded string, so a message
+                ;; will always read.  We will also ignore the rest
+                ;; of this line since there won't be anything
+                ;; interesting.
+                (while (setq msg (read (current-buffer)))
+                  (when-let ((msg-decoded (ignore-errors (base64-decode-string msg))))
+                    (setq msg-decoded (car (read-from-string msg-decoded)))
+                    (when (and (listp msg-decoded)
+                               (async-message-p msg-decoded)
+                               async-callback)
+                      (funcall async-callback msg-decoded))))
+              ;; This is OK, we reached the end of the chunk subprocess sent
+              ;; at this time.
+              (invalid-read-syntax t)
+              (end-of-file t)))
+          (goto-char (point-max))
+          (move-marker async-read-marker (point)))))))
 
 (defun async--receive-sexp (&optional stream)
   ;; FIXME: Why use `utf-8-auto' instead of `utf-8-unix'?  This is
@@ -285,11 +297,21 @@ data which expects to get complete lines as input."
           debug-on-error async-debug
           command-line-args-left nil)
     (condition-case-unless-debug err
-        (prin1 (funcall
-                (async--receive-sexp (unless async-send-over-pipe
-                                       args-left))))
+        (let ((ret (funcall
+                    (async--receive-sexp (unless async-send-over-pipe
+                                           args-left)))))
+          ;; The newlines makes client messages more robust and also
+          ;; handle some weird line-buffering issues on windows.
+          ;; Sometimes, the last "chunk" was not read by the filter,
+          ;; so a newline here should force a buffer flush.
+          (princ "\n")
+          (prin1 ret)
+          (princ "\n"))
       (error
-       (prin1 (list 'async-signal err))))))
+       (progn
+         (princ "\n")
+         (prin1 (list 'async-signal err))
+         (princ "\n"))))))
 
 (defun async-ready (future)
   "Query a FUTURE to see if it is ready.
@@ -338,10 +360,14 @@ optionally more key-value pairs.  Example:
   (async-send :status \"finished\" :file-size 123)"
   (let ((args (append args '(:async-message t))))
     (if async-in-child-emacs
+        ;; `princ' because async--insert-sexp already quotes everything.
         (princ
          (with-temp-buffer
            (async--insert-sexp (cons process-or-key args))
-           (buffer-string)))
+           ;; always make sure that one message package has its own
+           ;; line as there can be any random debug garbage printed
+           ;; above it.
+           (concat "\n" (buffer-string))))
       (async--transmit-sexp process-or-key (list 'quote args)))))
 
 (defun async-receive ()
@@ -371,13 +397,22 @@ object will return the process object when the program is
 finished.  Set DEFAULT-DIRECTORY to change PROGRAM's current
 working directory."
   (let* ((buf (generate-new-buffer (concat "*" name "*")))
+         (buf-err (generate-new-buffer (concat "*" name "*:err")))
          (proc (let ((process-connection-type nil))
-                 (apply #'start-process name buf program program-args))))
+                 (make-process
+                  :name name
+                  :buffer buf
+                  :stderr buf-err
+                  :command (cons program program-args)))))
     (with-current-buffer buf
       (set (make-local-variable 'async-callback) finish-func)
+
+      (set (make-local-variable 'async-read-marker)
+           (set-marker (make-marker) (point-min) buf))
+      (set-marker-insertion-type async-read-marker nil)
+
       (set-process-sentinel proc #'async-when-done)
-      (set-process-filter proc (async--process-filter-line-buffering-decorator
-                                #'async-read-from-client))
+      (set-process-filter proc #'async-read-from-client)
       (unless (string= name "emacs")
         (set (make-local-variable 'async-callback-for-process) t))
       proc)))
