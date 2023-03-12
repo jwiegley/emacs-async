@@ -197,11 +197,29 @@ It is intended to be used as follows:
                              (process-name proc) (process-exit-status proc))))
           (set (make-local-variable 'async-callback-value-set) t))))))
 
-(defun async-read-from-client (proc string)
-  ;; log the message in the process buffer
-  (with-current-buffer (process-buffer proc)
-    (insert string))
+(defun async--process-filter-line-buffering-decorator (filter)
+  "Decorate a process FILTER with line-buffering logic.
 
+Return a new process filter based on FILTER.
+
+FILTER is a function which could be used with `set-process-filter'.
+
+This decorator buffers input until it can pass a complete line
+further to the supplied FILTER.  It is useful as a buffer between
+a process producing data and an Emacs function operating on the
+data which expects to get complete lines as input."
+  (let ((data ""))
+    (lambda (process string)
+      (with-current-buffer (process-buffer process)
+        (insert string))
+
+      (let* ((line-data (split-string (concat data string) "\n")))
+        (while (cdr line-data)
+          (funcall filter process (car line-data))
+          (pop line-data))
+        (setq data (car line-data))))))
+
+(defun async-read-from-client (proc string)
   ;; parse message
   (with-temp-buffer
     (insert string)
@@ -358,7 +376,8 @@ working directory."
     (with-current-buffer buf
       (set (make-local-variable 'async-callback) finish-func)
       (set-process-sentinel proc #'async-when-done)
-      (set-process-filter proc #'async-read-from-client)
+      (set-process-filter proc (async--process-filter-line-buffering-decorator
+                                #'async-read-from-client))
       (unless (string= name "emacs")
         (set (make-local-variable 'async-callback-for-process) t))
       proc)))
