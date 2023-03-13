@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        emacs-version:
+          - '26.1'
+          - '26.2'
+          - '26.3'
+          - '27.1'
+          - '27.2'
+          - '28.1'
+          - '28.2'
+          - snapshot
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: jcs090218/setup-emacs@master
+      with:
+        version: ${{ matrix.emacs-version }}
+
+    - uses: emacs-eask/setup-eask@master
+      with:
+        version: 'snapshot'
+
+    - name: Workaround for Emacs 27.2's Windows build from GNU FTP
+      if: ${{ runner.os == 'Windows' && contains(fromJson('["26.1", "26.2", "26.3", "27.1", "27.2"]'), matrix.emacs-version) }}
+      run: |
+        gci cert:\LocalMachine\Root\DAC9024F54D8F6DF94935FB1732638CA6AD77C13
+        gci cert:\LocalMachine\Root\DAC9024F54D8F6DF94935FB1732638CA6AD77C13 | Remove-Item
+
+    - name: Install dependencies
+      run: |
+        eask install-deps --dev
+
+    - name: Run buttercup
+      timeout-minutes: 1
+      run: |
+        eask test buttercup
+
+    - name: Run tests
+      run: |
+        eask clean all
+        eask package
+        eask install
+        eask compile
