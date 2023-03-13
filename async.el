@@ -171,7 +171,10 @@ It is intended to be used as follows:
                     (prog1
                         (funcall async-callback proc)
                       (unless async-debug
-                        (kill-buffer (current-buffer))))
+                        ;; we need to check this because theoretically
+                        ;; `async-callback' could've killed it already
+                        (when (buffer-live-p (process-buffer proc))
+                          (kill-buffer (process-buffer proc)))))
                   (set (make-local-variable 'async-callback-value) proc)
                   (set (make-local-variable 'async-callback-value-set) t))
               ;; Maybe strip out unreadable "#"; They are replaced by
