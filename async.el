@@ -238,12 +238,13 @@ marker position to the end of this next line."
                 ;; of this line since there won't be anything
                 ;; interesting.
                 (while (setq msg (read (current-buffer)))
-                  (when-let ((msg-decoded (ignore-errors (base64-decode-string msg))))
-                    (setq msg-decoded (car (read-from-string msg-decoded)))
-                    (when (and (listp msg-decoded)
-                               (async-message-p msg-decoded)
-                               async-callback)
-                      (funcall async-callback msg-decoded))))
+                  (let ((msg-decoded (ignore-errors (base64-decode-string msg))))
+                    (when msg-decoded
+                      (setq msg-decoded (car (read-from-string msg-decoded)))
+                      (when (and (listp msg-decoded)
+                                 (async-message-p msg-decoded)
+                                 async-callback)
+                        (funcall async-callback msg-decoded)))))
               ;; This is OK, we reached the end of the chunk subprocess sent
               ;; at this time.
               (invalid-read-syntax t)
