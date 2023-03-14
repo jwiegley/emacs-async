@@ -86,20 +86,19 @@
   (message "Starting async-test-4...done"))
 
 (defun async-test-5 ()
+  "Test communication between parent and child, both ways."
   (interactive)
   (message "Starting async-test-5...")
   (let ((proc
          (async-start
           ;; What to do in the child process
           (lambda ()
-            (message "This is a test, sending message")
+            ;; Send message to parent
             (async-send :hello "world")
-            ;; wait for a message
+            ;; wait for a message from parent
             (let ((msg (async-receive)))
-              (message "Child got message: %s"
-                       (plist-get msg :goodbye)))
-            (sleep-for 3)
-            222)
+              (sleep-for 3)
+              (plist-get msg :result)))
 
           ;; What to do when it finishes
           (lambda (result)
@@ -108,7 +107,8 @@
                          (plist-get result :hello))
               (message "Async process done, result should be 222: %s"
                        result))))))
-    (async-send proc :goodbye "everyone"))
+    ;; Send message to child process
+    (async-send proc :result "222"))
   (message "Starting async-test-5...done"))
 
 (defun async-test-6 ()
@@ -123,7 +123,6 @@
    ;; What to do when it finishes
    (lambda (result)
      (message "Async process done: %s" result))))
-
 
 (provide 'async-test)
 
