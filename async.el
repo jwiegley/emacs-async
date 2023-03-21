@@ -401,7 +401,8 @@ object will return the process object when the program is
 finished.  Set DEFAULT-DIRECTORY to change PROGRAM's current
 working directory."
   (let* ((buf (generate-new-buffer (concat "*" name "*")))
-         (buf-err (generate-new-buffer (concat "*" name "*:err")))
+         (buf-err (and async-debug
+                       (generate-new-buffer (concat "*" name "*:err"))))
          (proc (let ((process-connection-type nil))
                  (make-process
                   :name name
