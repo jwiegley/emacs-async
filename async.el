@@ -401,17 +401,20 @@ object will return the process object when the program is
 finished.  Set DEFAULT-DIRECTORY to change PROGRAM's current
 working directory."
   (let* ((buf (generate-new-buffer (concat "*" name "*")))
-         (buf-err (and async-debug
-                       (generate-new-buffer (concat "*" name "*:err"))))
+         (buf-err (generate-new-buffer (concat "*" name ":err*")))
          (proc (let ((process-connection-type nil))
                  (make-process
                   :name name
                   :buffer buf
                   :stderr buf-err
                   :command (cons program program-args)))))
+    (set-process-sentinel
+     (get-buffer-process buf-err)
+     (lambda (proc _change)
+       (unless (or async-debug (buffer-live-p proc))
+         (kill-buffer (process-buffer proc)))))
     (with-current-buffer buf
       (set (make-local-variable 'async-callback) finish-func)
-
       (set (make-local-variable 'async-read-marker)
            (set-marker (make-marker) (point-min) buf))
       (set-marker-insertion-type async-read-marker nil)

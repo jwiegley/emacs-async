@@ -1,4 +1,5 @@
 ;; -*- lexical-binding: t -*-
+(require 'subr-x)
 
 (require 'buttercup)
 (require 'async)
@@ -205,6 +206,55 @@
 
           (expect (car messages) :to-equal t)
           (expect (cadr messages) :to-equal (make-string 10485760 ?x))))))
+
+  (describe "Handling process buffers"
+
+    (it "should automatically close stdout and stderr buffer when process exits"
+
+      (let ((messages nil))
+        (async-start
+         (lambda ()
+           (message "This is a test")
+           (sleep-for 0.5)
+           222)
+
+         (lambda (result)
+           (push (format "Async process done, result should be 222: %s" result) messages)))
+
+        (sleep-for 1)
+
+        (expect (string-join (nreverse messages) "\n")
+                :to-equal "Async process done, result should be 222: 222")
+        (expect (cl-find-if (lambda (x) (string-match-p "emacs" x)) (mapcar #'buffer-name (buffer-list)))
+                :to-be nil)
+        (expect (cl-find-if (lambda (x) (string-match-p "emacs:err" x)) (mapcar #'buffer-name (buffer-list)))
+                :to-be nil)))
+
+    (it "should keep stdout and stderr buffer when process exits if debug is active"
+
+      (unwind-protect
+          (let ((messages nil)
+                (async-debug t))
+            (async-start
+             (lambda ()
+               (message "This is a test")
+               (sleep-for 0.5)
+               222)
+
+             (lambda (result)
+               (push (format "Async process done, result should be 222: %s" result) messages)))
+
+            (sleep-for 1)
+
+            (expect (string-join (nreverse messages) "\n")
+                    :to-equal "Async process done, result should be 222: 222")
+            (expect (cl-find-if (lambda (x) (string-match-p "emacs" x)) (mapcar #'buffer-name (buffer-list)))
+                    :to-be-truthy)
+            (expect (cl-find-if (lambda (x) (string-match-p "emacs:err" x)) (mapcar #'buffer-name (buffer-list)))
+                    :to-be-truthy))
+        (let ((kill-buffer-query-functions nil))
+          (kill-buffer "*emacs*")
+          (kill-buffer "*emacs:err*")))))
 
   (describe "Injecting environment"
 
