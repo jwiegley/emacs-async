@@ -411,7 +411,7 @@ working directory."
     (set-process-sentinel
      (get-buffer-process buf-err)
      (lambda (proc _change)
-       (unless (or async-debug (buffer-live-p proc))
+       (unless (or async-debug (process-live-p proc))
          (kill-buffer (process-buffer proc)))))
     (with-current-buffer buf
       (set (make-local-variable 'async-callback) finish-func)
