@@ -251,7 +251,7 @@ See `dired-create-files' for the behavior of arguments."
   (setq overwrite-query nil)
   (let ((total (length fn-list))
         failures async-fn-list skipped callback
-        async-quiet-switch)
+        async-quiet-switch create-dir)
     (let (to)
       (dolist (from fn-list)
         (setq to (funcall name-constructor from))
@@ -344,7 +344,16 @@ ESC or `q' to not overwrite any of the remaining files,
                          for destp = (file-exists-p to)
                          do (and bf destp
                                  (with-current-buffer bf
-                                   (set-visited-file-name to t t))))))))
+                                   (set-visited-file-name to t t)))))))
+      (when (boundp 'dired-create-destination-dirs)
+        (setq create-dir
+              (cl-case dired-create-destination-dirs
+                (always 'always)
+                (ask (and (y-or-n-p (format "Create directory `%s'? "
+                                            (if (file-directory-p to)
+                                                to
+                                              (file-name-directory to))))
+                          'always))))))
     ;; Start async process.
     (when async-fn-list
       (process-put
@@ -353,7 +362,8 @@ ESC or `q' to not overwrite any of the remaining files,
                        ,(async-inject-variables dired-async-env-variables-regexp)
                        (let ((dired-recursive-copies (quote always))
                              (dired-copy-preserve-time
-                              ,dired-copy-preserve-time))
+                              ,dired-copy-preserve-time)
+                             (dired-create-destination-dirs ',create-dir))
                          (setq overwrite-backup-query nil)
                          ;; Inline `backup-file' as long as it is not
                          ;; available in emacs.
