@@ -345,15 +345,16 @@ ESC or `q' to not overwrite any of the remaining files,
                          do (and bf destp
                                  (with-current-buffer bf
                                    (set-visited-file-name to t t)))))))
-      (when (boundp 'dired-create-destination-dirs)
-        (setq create-dir
-              (cl-case dired-create-destination-dirs
-                (always 'always)
-                (ask (and (y-or-n-p (format "Create directory `%s'? "
-                                            (if (file-directory-p to)
-                                                to
-                                              (file-name-directory to))))
-                          'always))))))
+      (let ((dirp (file-directory-p to))
+            (dest (file-name-directory to)))
+        (when (boundp 'dired-create-destination-dirs)
+          (setq create-dir
+                (cl-case dired-create-destination-dirs
+                  (always 'always)
+                  (ask (and (null dirp)
+                            (null (file-directory-p dest))
+                            (y-or-n-p (format "Create directory `%s'? " dest)))
+                            'always))))))
     ;; Start async process.
     (when async-fn-list
       (process-put
