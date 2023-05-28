@@ -354,7 +354,7 @@ ESC or `q' to not overwrite any of the remaining files,
                   (ask (and (null dirp)
                             (null (file-directory-p dest))
                             (y-or-n-p (format "Create directory `%s'? " dest)))
-                            'always))))))
+                       'always))))))
     ;; Start async process.
     (when async-fn-list
       (process-put
