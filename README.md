@@ -69,6 +69,13 @@ for more specific hosts (smtp, mails etc...)
 
 See [auth-sources manual](https://www.gnu.org/software/emacs/manual/html_mono/auth.html) for more infos.
 
+However, when choosing the destination with completion (e.g. helm) and
+you have no ".authinfo" file or just no entry for this host, tramp will
+prompt for password and offer you to save it, if you answer 'yes' you
+will be able to achieve you async operation as the child Emacs will
+use this just created ".authinfo" file, if you say 'no', your dired-async
+process will hang forever because child emacs is waiting for password.
+
 NOTE: For all your async implementations in emacs-26+ versions that
 handle remote files (tramp), you will have to let-bind
 `async-quiet-switch` to `-q` to workaround a tramp bug that prevent `emacs -Q` to use [auth-sources](https://www.gnu.org/software/emacs/manual/html_mono/auth.html) mechanism.
