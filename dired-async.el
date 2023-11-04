@@ -242,6 +242,14 @@ cases if `dired-async-skip-fast' is non-nil."
       (funcall old-func file-creator operation
                (nreverse quick-list) name-constructor marker-char))))
 
+(defun dired-async--abort-if-file-too-large (size op-type filename)
+  "If file SIZE larger than `large-file-warning-threshold', allow user to abort.
+Same as `abort-if-file-too-large' but without user-error."
+  (when (and large-file-warning-threshold size
+	     (> size large-file-warning-threshold))
+    (files--ask-user-about-large-file
+     size op-type filename nil)))
+
 (defvar overwrite-query)
 (defun dired-async-create-files (file-creator operation fn-list name-constructor
                                               &optional _marker-char)
@@ -299,14 +307,22 @@ ESC or `q' to not overwrite any of the remaining files,
                    (file-in-directory-p destname from)
                    (error "Cannot copy `%s' into its subdirectory `%s'"
                           from to)))
-            (if overwrite
-                (or (and dired-overwrite-confirmed
-                         (push (cons from to) async-fn-list))
-                    (progn
-                      (push (dired-make-relative from) failures)
-                      (dired-log "%s `%s' to `%s' failed\n"
-                                 operation from to)))
-              (push (cons from to) async-fn-list)))))
+            ;; Skip file if it is too large.
+            (if (and (memq operation '(copy rename))
+                     (eq (dired-async--abort-if-file-too-large
+                          (file-attribute-size
+                           (file-attributes (file-truename from)))
+                          (symbol-name operation) from)
+                         'abort))
+                (push from skipped)
+              (if overwrite
+                  (or (and dired-overwrite-confirmed
+                           (push (cons from to) async-fn-list))
+                      (progn
+                        (push (dired-make-relative from) failures)
+                        (dired-log "%s `%s' to `%s' failed\n"
+                                   operation from to)))
+                (push (cons from to) async-fn-list))))))
       ;; Fix tramp issue #80 with emacs-26, use "-q" only when needed.
       (setq async-quiet-switch
             (if (and (boundp 'tramp-cache-read-persistent-data)
