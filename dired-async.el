@@ -308,11 +308,11 @@ ESC or `q' to not overwrite any of the remaining files,
                    (error "Cannot copy `%s' into its subdirectory `%s'"
                           from to)))
             ;; Skip file if it is too large.
-            (if (and (memq operation '(copy rename))
+            (if (and (member operation '("Copy" "Rename"))
                      (eq (dired-async--abort-if-file-too-large
                           (file-attribute-size
                            (file-attributes (file-truename from)))
-                          (symbol-name operation) from)
+                          (downcase operation) from)
                          'abort))
                 (push from skipped)
               (if overwrite
