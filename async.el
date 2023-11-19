@@ -68,6 +68,8 @@ been setup so any async code can load libraries you expect.")
 ;; For emacs<29 (only exists in emacs-29+).
 (defvar print-symbols-bare)
 
+(defvar tramp-password-prompt-regexp)
+
 (defun async--purecopy (object)
   "Remove text properties in OBJECT.
 

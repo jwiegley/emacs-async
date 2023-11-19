@@ -250,6 +250,23 @@ Same as `abort-if-file-too-large' but without user-error."
     (files--ask-user-about-large-file
      size op-type filename nil)))
 
+(defun dired-async--process-filter (proc string)
+  "Process filter for `dired-async-create-files'.
+Insert STRING in PROC buffer while PROC is running.
+When STRING match `tramp-password-prompt-regexp' prompt user in the
+parent emacs for password."
+  (when (string-match tramp-password-prompt-regexp string)
+    (process-send-string proc (concat (read-passwd (match-string 0 string)) "\n")))
+  (with-current-buffer (process-buffer proc)
+    (let ((moving (= (point) (process-mark proc))))
+      (save-excursion
+        ;; Insert the text, advancing the process marker.
+        (goto-char (process-mark proc))
+        (insert string)
+        (set-marker (process-mark proc) (point)))
+      (when moving
+        (goto-char (process-mark proc))))))
+
 (defvar overwrite-query)
 (defun dired-async-create-files (file-creator operation fn-list name-constructor
                                               &optional _marker-char)
@@ -259,7 +276,7 @@ See `dired-create-files' for the behavior of arguments."
   (setq overwrite-query nil)
   (let ((total (length fn-list))
         failures async-fn-list skipped callback
-        async-quiet-switch create-dir)
+        async-quiet-switch create-dir proc)
     (let (to)
       (dolist (from fn-list)
         (setq to (funcall name-constructor from))
@@ -373,52 +390,54 @@ ESC or `q' to not overwrite any of the remaining files,
                        'always))))))
     ;; Start async process.
     (when async-fn-list
-      (process-put
-       (async-start `(lambda ()
-                       (require 'cl-lib) (require 'dired-aux) (require 'dired-x)
-                       ,(async-inject-variables dired-async-env-variables-regexp)
-                       (advice-add #'files--ask-user-about-large-file
-                                   :override (lambda (&rest args) nil))
-                       (let ((dired-recursive-copies (quote always))
-                             (dired-copy-preserve-time
-                              ,dired-copy-preserve-time)
-                             (dired-create-destination-dirs ',create-dir))
-                         (setq overwrite-backup-query nil)
-                         ;; Inline `backup-file' as long as it is not
-                         ;; available in emacs.
-                         (defalias 'backup-file
-                           ;; Same feature as "cp -f --backup=numbered from to"
-                           ;; Symlinks are copied as file from source unlike
-                           ;; `dired-copy-file' which is same as cp -d.
-                           ;; Directories are omitted.
-                           (lambda (from to ok)
-                             (cond ((file-directory-p from) (ignore))
-                                   (t (let ((count 0))
-                                        (while (let ((attrs (file-attributes to)))
-                                                 (and attrs (null (nth 0 attrs))))
-                                          (cl-incf count)
-                                          (setq to (concat (file-name-sans-versions to)
-                                                           (format ".~%s~" count)))))
-                                      (condition-case err
-                                          (copy-file from to ok dired-copy-preserve-time)
-                                        (file-date-error
-                                         (dired-log "Can't set date on %s:\n%s\n" from err)))))))
-                         ;; Now run the FILE-CREATOR function on files.
-                         (cl-loop with fn = (quote ,file-creator)
-                                  for (from . dest) in (quote ,async-fn-list)
-                                  do (condition-case err
-                                         (funcall fn from dest t)
-                                       (file-error
-                                        (dired-log "%s: %s\n" (car err) (cdr err))
-                                        nil)))
-                         (when (get-buffer dired-log-buffer)
-                           (dired-log t)
-                           (with-current-buffer dired-log-buffer
-                             (write-region (point-min) (point-max)
-                                           ,dired-async-log-file))))
-                       ,(dired-async-maybe-kill-ftp))
-                    callback)
-       'dired-async-process t)
+      (setq proc
+            (async-start `(lambda ()
+                            (require 'cl-lib) (require 'dired-aux) (require 'dired-x)
+                            ,(async-inject-variables dired-async-env-variables-regexp)
+                            (advice-add #'files--ask-user-about-large-file
+                                        :override (lambda (&rest args) nil))
+                            (let ((dired-recursive-copies (quote always))
+                                  (dired-copy-preserve-time
+                                   ,dired-copy-preserve-time)
+                                  (dired-create-destination-dirs ',create-dir)
+                                  auth-source-save-behavior)
+                              (setq overwrite-backup-query nil)
+                              ;; Inline `backup-file' as long as it is not
+                              ;; available in emacs.
+                              (defalias 'backup-file
+                                ;; Same feature as "cp -f --backup=numbered from to"
+                                ;; Symlinks are copied as file from source unlike
+                                ;; `dired-copy-file' which is same as cp -d.
+                                ;; Directories are omitted.
+                                (lambda (from to ok)
+                                  (cond ((file-directory-p from) (ignore))
+                                        (t (let ((count 0))
+                                             (while (let ((attrs (file-attributes to)))
+                                                      (and attrs (null (nth 0 attrs))))
+                                               (cl-incf count)
+                                               (setq to (concat (file-name-sans-versions to)
+                                                                (format ".~%s~" count)))))
+                                           (condition-case err
+                                               (copy-file from to ok dired-copy-preserve-time)
+                                             (file-date-error
+                                              (dired-log "Can't set date on %s:\n%s\n" from err)))))))
+                              ;; Now run the FILE-CREATOR function on files.
+                              (cl-loop with fn = (quote ,file-creator)
+                                       for (from . dest) in (quote ,async-fn-list)
+                                       do (condition-case err
+                                              (funcall fn from dest t)
+                                            (file-error
+                                             (dired-log "%s: %s\n" (car err) (cdr err))
+                                             nil)))
+                              (when (get-buffer dired-log-buffer)
+                                (dired-log t)
+                                (with-current-buffer dired-log-buffer
+                                  (write-region (point-min) (point-max)
+                                                ,dired-async-log-file))))
+                            ,(dired-async-maybe-kill-ftp))
+                         callback))
+      (process-put proc 'dired-async-process t)
+      (set-process-filter proc 'dired-async--process-filter)
       ;; Run mode-line notifications while process running.
       (dired-async--modeline-mode 1)
       (message "%s proceeding asynchronously..." operation))))
