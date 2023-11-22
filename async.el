@@ -33,7 +33,8 @@
 ;;; Code:
 
 (eval-when-compile (require 'cl-lib))
-(require 'tramp)
+
+(defvar tramp-password-prompt-regexp)
 
 (defgroup async nil
   "Simple asynchronous processing in Emacs"
@@ -220,7 +221,8 @@ lasts complete line.  Every time we get new input, we try to look
 for newline, and if found, process the entire line and bump the
 marker position to the end of this next line."
   (with-current-buffer (process-buffer proc)
-    (when (string-match tramp-password-prompt-regexp string)
+    (when (and (boundp 'tramp-password-prompt-regexp)
+               (string-match tramp-password-prompt-regexp string))
       (process-send-string proc (concat (read-passwd (match-string 0 string)) "\n")))
     (goto-char (point-max))
     (save-excursion
