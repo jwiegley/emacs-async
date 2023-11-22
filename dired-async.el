@@ -382,7 +382,8 @@ ESC or `q' to not overwrite any of the remaining files,
                        (let ((dired-recursive-copies (quote always))
                              (dired-copy-preserve-time
                               ,dired-copy-preserve-time)
-                             (dired-create-destination-dirs ',create-dir))
+                             (dired-create-destination-dirs ',create-dir)
+                             auth-source-save-behavior)
                          (setq overwrite-backup-query nil)
                          ;; Inline `backup-file' as long as it is not
                          ;; available in emacs.
