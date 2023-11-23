@@ -223,7 +223,8 @@ marker position to the end of this next line."
   (with-current-buffer (process-buffer proc)
     (when (and (boundp 'tramp-password-prompt-regexp)
                (string-match tramp-password-prompt-regexp string))
-      (process-send-string proc (concat (read-passwd (match-string 0 string)) "\n")))
+      (process-send-string
+       proc (concat (read-passwd (match-string 0 string)) "\n")))
     (goto-char (point-max))
     (save-excursion
       (insert string))
