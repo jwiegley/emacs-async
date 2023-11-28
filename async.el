@@ -44,6 +44,12 @@
   "Default function to remove text properties in variables."
   :type 'function)
 
+(defcustom async-prompt-for-password t
+  "Prompt for password in parent Emacs if needed when non nil.
+When this is nil child Emacs will hang forever when a user interaction
+for password is required unless a password is stored in a \".authinfo\" file."
+  :type 'boolean)
+
 (defvar async-debug nil)
 (defvar async-send-over-pipe t)
 (defvar async-in-child-emacs nil)
@@ -221,7 +227,8 @@ lasts complete line.  Every time we get new input, we try to look
 for newline, and if found, process the entire line and bump the
 marker position to the end of this next line."
   (with-current-buffer (process-buffer proc)
-    (when (and (boundp 'tramp-password-prompt-regexp)
+    (when (and async-prompt-for-password
+               (boundp 'tramp-password-prompt-regexp)
                (string-match tramp-password-prompt-regexp string))
       (process-send-string
        proc (concat (read-passwd (match-string 0 string)) "\n")))
