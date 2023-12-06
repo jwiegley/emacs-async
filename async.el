@@ -229,6 +229,7 @@ marker position to the end of this next line."
   (with-current-buffer (process-buffer proc)
     (when (and async-prompt-for-password
                (boundp 'tramp-password-prompt-regexp)
+               tramp-password-prompt-regexp
                (string-match tramp-password-prompt-regexp string))
       (process-send-string
        proc (concat (read-passwd (match-string 0 string)) "\n")))
