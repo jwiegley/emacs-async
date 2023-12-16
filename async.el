@@ -431,6 +431,7 @@ working directory."
       (set (make-local-variable 'async-callback) finish-func)
       (set (make-local-variable 'async-read-marker)
            (set-marker (make-marker) (point-min) buf))
+      (make-local-variable 'async-prompt-for-password)
       (set-marker-insertion-type async-read-marker nil)
 
       (set-process-sentinel proc #'async-when-done)
