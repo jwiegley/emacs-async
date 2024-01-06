@@ -368,7 +368,7 @@ its FINISH-FUNC is nil."
        (plist-get value :async-message)))
 
 (defun async-send (process-or-key &rest args)
-  "Send the given message to the asychronous child or parent Emacs.
+  "Send the given message to the asynchronous child or parent Emacs.
 
 To send messages from the parent to a child, PROCESS-OR-KEY is
 the child process object.  ARGS is a plist.  Example:
@@ -439,7 +439,7 @@ working directory."
       (set-marker-insertion-type async-read-marker nil)
       (set-process-sentinel proc #'async-when-done)
       ;; Pass the value of `async-prompt-for-password' to the process
-      ;; filter fn trough the lexical local var prt-for-pwd (Issue#182).
+      ;; filter fn through the lexical local var prt-for-pwd (Issue#182).
       (set-process-filter proc (lambda (proc string)
                                  (async-read-from-client
                                   proc string prt-for-pwd)))
