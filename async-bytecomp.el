@@ -32,7 +32,7 @@
 ;;  the new files in the current environment with the old files loaded, creating
 ;;  errors in most packages after upgrades.
 ;;
-;;  NB: This package is advicing the function `package--compile'.
+;;  NB: This package is advising the function `package--compile'.
 
 ;;; Code:
 
