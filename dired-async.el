@@ -250,8 +250,8 @@ cases if `dired-async-skip-fast' is non-nil."
                (nreverse quick-list) name-constructor marker-char))))
 
 (defun dired-async--abort-if-file-too-large (size op-type filename)
-  "If file SIZE larger than `large-file-warning-threshold', allow user to abort.
-Same as `abort-if-file-too-large' but without user-error."
+  "If file SIZE larger than `dired-async-large-file-warning-threshold', allow user to abort.
+Similar to `abort-if-file-too-large' but without user-error."
   (when (and dired-async-large-file-warning-threshold size
 	     (> size dired-async-large-file-warning-threshold))
     (files--ask-user-about-large-file
