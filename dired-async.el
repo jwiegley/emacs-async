@@ -81,6 +81,10 @@ or rename for `dired-async-skip-fast'."
   :risky t
   :type 'integer)
 
+(defcustom dired-async-large-file-warning-threshold large-file-warning-threshold
+  "Same as `large-file-warning-threshold' but for dired-async."
+  :type 'integer)
+
 (defface dired-async-message
     '((t (:foreground "yellow")))
   "Face used for mode-line message.")
@@ -243,10 +247,10 @@ cases if `dired-async-skip-fast' is non-nil."
                (nreverse quick-list) name-constructor marker-char))))
 
 (defun dired-async--abort-if-file-too-large (size op-type filename)
-  "If file SIZE larger than `large-file-warning-threshold', allow user to abort.
+  "Warn when FILENAME larger than `dired-async-large-file-warning-threshold'.
 Same as `abort-if-file-too-large' but without user-error."
-  (when (and large-file-warning-threshold size
-	     (> size large-file-warning-threshold))
+  (when (and dired-async-large-file-warning-threshold size
+	     (> size dired-async-large-file-warning-threshold))
     (files--ask-user-about-large-file
      size op-type filename nil)))
 
