@@ -119,9 +119,9 @@ or rename for `dired-async-skip-fast'."
     (sit-for 3)
     (force-mode-line-update)))
 
-(defun dired-async-processes ()
+(defun dired-async-processes (&optional propname)
   (cl-loop for p in (process-list)
-           when (process-get p 'dired-async-process)
+           when (process-get p (or propname 'dired-async-process))
            collect p))
 
 (defun dired-async-kill-process ()
