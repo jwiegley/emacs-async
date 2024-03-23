@@ -50,6 +50,13 @@ When this is nil child Emacs will hang forever when a user interaction
 for password is required unless a password is stored in a \".authinfo\" file."
   :type 'boolean)
 
+(defvar async-process-noquery-on-exit nil
+  "Used as the :noquery argument to `make-process'.
+
+Intended to be let-bound around a call to `async-start' or
+`async-start-process'.  If non-nil, the child Emacs process will
+be silently killed if the user exits the parent Emacs.")
+
 (defvar async-debug nil)
 (defvar async-send-over-pipe t)
 (defvar async-in-child-emacs nil)
@@ -426,7 +433,8 @@ working directory."
                   :name name
                   :buffer buf
                   :stderr buf-err
-                  :command (cons program program-args)))))
+                  :command (cons program program-args)
+                  :noquery async-process-noquery-on-exit))))
     (set-process-sentinel
      (get-buffer-process buf-err)
      (lambda (proc _change)
