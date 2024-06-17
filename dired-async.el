@@ -387,6 +387,7 @@ ESC or `q' to not overwrite any of the remaining files,
                              (dired-copy-preserve-time
                               ,dired-copy-preserve-time)
                              (dired-create-destination-dirs ',create-dir)
+                             (dired-vc-rename-file ,dired-vc-rename-file)
                              auth-source-save-behavior)
                          (setq overwrite-backup-query nil)
                          ;; Inline `backup-file' as long as it is not
