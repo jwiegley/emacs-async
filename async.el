@@ -143,14 +143,15 @@ It is intended to be used as follows:
     ,@(let (bindings)
         (mapatoms
          (lambda (sym)
-           (let* ((sname (and (boundp sym) (symbol-name sym)))
-                  (value (and sname (symbol-value sym))))
+           (let ((sname (and (boundp sym) (symbol-name sym)))
+                 value)
              (when (and sname
                         (or (null include-regexp)
                             (string-match include-regexp sname))
                         (or (null exclude-regexp)
                             (not (string-match exclude-regexp sname)))
                         (not (string-match "-syntax-table\\'" sname)))
+               (setq value (symbol-value sym))
                (unless (or (stringp value)
                            (memq value '(nil t))
                            (numberp value)
