@@ -117,14 +117,17 @@ is returned unmodified."
                   collect elm))
         (t object)))
 
+(defvar async-inject-variables-exclude-regexps '("-syntax-table\\'")
+  "A list of regexps that `async-inject-variables' should ignore.")
+
 (defun async-inject-variables
     (include-regexp &optional predicate exclude-regexp noprops)
   "Return a `setq' form that replicates part of the calling environment.
 
 It sets the value for every variable matching INCLUDE-REGEXP and
 also PREDICATE.  It will not perform injection for any variable
-matching EXCLUDE-REGEXP (if present) or representing a `syntax-table'
-i.e. ending by \"-syntax-table\".
+matching EXCLUDE-REGEXP (if present) and variables matching one of
+`async-inject-variables-exclude-regexps'.
 When NOPROPS is non nil it tries to strip out text properties of each
 variable's value with `async-variables-noprops-function'.
 
@@ -150,7 +153,8 @@ It is intended to be used as follows:
                             (string-match include-regexp sname))
                         (or (null exclude-regexp)
                             (not (string-match exclude-regexp sname)))
-                        (not (string-match "-syntax-table\\'" sname)))
+                        (cl-loop for re in async-inject-variables-exclude-regexps
+                                 never (string-match-p re sname)))
                (setq value (symbol-value sym))
                (unless (or (stringp value)
                            (memq value '(nil t))
