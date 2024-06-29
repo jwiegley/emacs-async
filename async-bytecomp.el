@@ -60,6 +60,30 @@ all packages are always compiled asynchronously."
 (defvar async-bytecomp-load-variable-regexp "\\`load-path\\'"
   "The variable used by `async-inject-variables' when (re)compiling async.")
 
+(defun async-bytecomp--file-to-comp-buffer (file-or-dir &optional quiet)
+  (let ((bn (file-name-nondirectory file-or-dir)))
+    (if (file-exists-p async-byte-compile-log-file)
+        (let ((buf (get-buffer-create byte-compile-log-buffer))
+              (n 0))
+          (with-current-buffer buf
+            (goto-char (point-max))
+            (let ((inhibit-read-only t))
+              (insert-file-contents async-byte-compile-log-file)
+              (compilation-mode))
+            (display-buffer buf)
+            (delete-file async-byte-compile-log-file)
+            (unless quiet
+              (save-excursion
+                (goto-char (point-min))
+                (while (re-search-forward "^.*:Error:" nil t)
+                  (cl-incf n)))
+              (if (> n 0)
+                  (message "Failed to compile %d files in directory `%s'" n bn)
+                (message "Directory `%s' compiled asynchronously with warnings"
+                         bn)))))
+      (unless quiet
+        (message "Directory `%s' compiled asynchronously with success" bn)))))
+
 ;;;###autoload
 (defun async-byte-recompile-directory (directory &optional quiet)
   "Compile all *.el files in DIRECTORY asynchronously.
@@ -73,26 +97,7 @@ All *.elc files are systematically deleted before proceeding."
   (load "async")
   (let ((call-back
          (lambda (&optional _ignore)
-           (if (file-exists-p async-byte-compile-log-file)
-               (let ((buf (get-buffer-create byte-compile-log-buffer))
-                     (n 0))
-                 (with-current-buffer buf
-                   (goto-char (point-max))
-                   (let ((inhibit-read-only t))
-                     (insert-file-contents async-byte-compile-log-file)
-                     (compilation-mode))
-                   (display-buffer buf)
-                   (delete-file async-byte-compile-log-file)
-                   (unless quiet
-                     (save-excursion
-                       (goto-char (point-min))
-                       (while (re-search-forward "^.*:Error:" nil t)
-                         (cl-incf n)))
-                     (if (> n 0)
-                         (message "Failed to compile %d files in directory `%s'" n directory)
-                       (message "Directory `%s' compiled asynchronously with warnings" directory)))))
-             (unless quiet
-               (message "Directory `%s' compiled asynchronously with success" directory))))))
+           (async-bytecomp--file-to-comp-buffer directory quiet))))
     (async-start
      `(lambda ()
         (require 'bytecomp)
@@ -170,23 +175,7 @@ Same as `byte-compile-file' but asynchronous."
   (interactive "fFile: ")
   (let ((call-back
          (lambda (&optional _ignore)
-           (let ((bn (file-name-nondirectory file)))
-             (if (file-exists-p async-byte-compile-log-file)
-                 (let ((buf (get-buffer-create byte-compile-log-buffer))
-                       start)
-                   (with-current-buffer buf
-                     (goto-char (setq start (point-max)))
-                     (let ((inhibit-read-only t))
-                       (insert-file-contents async-byte-compile-log-file)
-                       (compilation-mode))
-                     (display-buffer buf)
-                     (delete-file async-byte-compile-log-file)
-                     (save-excursion
-                       (goto-char start)
-                       (if (re-search-forward "^.*:Error:" nil t)
-                           (message "Failed to compile `%s'" bn)
-                         (message "`%s' compiled asynchronously with warnings" bn)))))
-               (message "`%s' compiled asynchronously with success" bn))))))
+           (async-bytecomp--file-to-comp-buffer file))))
     (async-start
      `(lambda ()
         (require 'bytecomp)
