@@ -60,8 +60,11 @@ all packages are always compiled asynchronously."
 (defvar async-bytecomp-load-variable-regexp "\\`load-path\\'"
   "The variable used by `async-inject-variables' when (re)compiling async.")
 
-(defun async-bytecomp--file-to-comp-buffer (file-or-dir &optional quiet)
-  (let ((bn (file-name-nondirectory file-or-dir)))
+(defun async-bytecomp--file-to-comp-buffer (file-or-dir &optional quiet type)
+  (let ((bn (file-name-nondirectory file-or-dir))
+        (action-name (pcase type
+                       ('file "File")
+                       ('directory "Directory"))))
     (if (file-exists-p async-byte-compile-log-file)
         (let ((buf (get-buffer-create byte-compile-log-buffer))
               (n 0))
@@ -79,10 +82,10 @@ all packages are always compiled asynchronously."
                   (cl-incf n)))
               (if (> n 0)
                   (message "Failed to compile %d files in directory `%s'" n bn)
-                (message "Directory `%s' compiled asynchronously with warnings"
-                         bn)))))
+                (message "%s `%s' compiled asynchronously with warnings"
+                         action-name bn)))))
       (unless quiet
-        (message "Directory `%s' compiled asynchronously with success" bn)))))
+        (message "%s `%s' compiled asynchronously with success" action-name bn)))))
 
 ;;;###autoload
 (defun async-byte-recompile-directory (directory &optional quiet)
@@ -97,7 +100,7 @@ All *.elc files are systematically deleted before proceeding."
   (load "async")
   (let ((call-back
          (lambda (&optional _ignore)
-           (async-bytecomp--file-to-comp-buffer directory quiet))))
+           (async-bytecomp--file-to-comp-buffer directory quiet 'directory))))
     (async-start
      `(lambda ()
         (require 'bytecomp)
@@ -175,7 +178,7 @@ Same as `byte-compile-file' but asynchronous."
   (interactive "fFile: ")
   (let ((call-back
          (lambda (&optional _ignore)
-           (async-bytecomp--file-to-comp-buffer file))))
+           (async-bytecomp--file-to-comp-buffer file nil 'file))))
     (async-start
      `(lambda ()
         (require 'bytecomp)
