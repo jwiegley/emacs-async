@@ -13,7 +13,6 @@ concurrency:
 
 jobs:
   test:
-    if: false
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -27,7 +26,22 @@ jobs:
           - '27.2'
           - '28.1'
           - '28.2'
+          - '29.4'
           - snapshot
+        # Skip older emacs versions that are not available on ARM MacOS
+        exclude:
+          - os: macos-latest
+            emacs-version: '26.1'
+          - os: macos-latest
+            emacs-version: '26.2'
+          - os: macos-latest
+            emacs-version: '26.3'
+          - os: macos-latest
+            emacs-version: '27.1'
+          - os: macos-latest
+            emacs-version: '27.2'
+          - os: macos-latest
+            emacs-version: '28.1'
 
     steps:
     - uses: actions/checkout@v3
