@@ -92,8 +92,9 @@ Argument ERROR-FILE is the file where errors are logged, if some."
               (delete-file error-file)
               (async-package--modeline-mode -1))
           (when result
-            (setq package-selected-packages
-                  (append result package-selected-packages))
+            (when (eq action 'install)
+              (customize-save-variable 'package-selected-packages
+                                       (append result package-selected-packages)))
             (package-initialize) ; load packages.
             (async-package--modeline-mode -1)
             (message "%s %s packages done" action-string (length packages))
