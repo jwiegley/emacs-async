@@ -63,8 +63,7 @@ Argument ERROR-FILE is the file where errors are logged, if some."
      (async-start
       `(lambda ()
          (require 'bytecomp)
-         (setq package-archives ',package-archives
-               package-load-list ',package-load-list)
+         (setq package-archives ',package-archives)
          (package-initialize)
          (prog1
              (condition-case err
