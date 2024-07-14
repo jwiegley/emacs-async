@@ -93,8 +93,11 @@ Argument ERROR-FILE is the file where errors are logged, if some."
               (async-package--modeline-mode -1))
           (when result
             (when (eq action 'install)
-              (customize-save-variable 'package-selected-packages
-                                       (append result package-selected-packages)))
+              (let ((pkgs (when result
+                            (if (listp result) result (list result)))))
+                (customize-save-variable
+                 'package-selected-packages
+                 (delete-dups (append pkgs package-selected-packages)))))
             (package-initialize) ; load packages.
             (async-package--modeline-mode -1)
             (message "%s %s packages done" action-string (length packages))
