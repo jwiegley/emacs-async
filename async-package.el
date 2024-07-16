@@ -22,6 +22,9 @@
 
 ;;; Commentary:
 
+;; Provide the function `async-package-do-action' to
+;; (re)install/upgrade packages asynchronously.
+
 ;;; Code:
 
 (eval-when-compile (require 'cl-lib))
