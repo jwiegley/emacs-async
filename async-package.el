@@ -67,8 +67,10 @@ Argument ERROR-FILE is the file where errors are logged, if some."
       `(lambda ()
          (require 'bytecomp)
          (setq package-archives ',package-archives
-               package-pinned-packages ',package-pinned-packages)
-         (package-initialize)
+               package-pinned-packages ',package-pinned-packages
+               package-archive-contents ',package-archive-contents
+               package-alist ',package-alist
+               load-path ',load-path)
          (prog1
              (condition-case err
                  (mapc ',fn ',packages)
