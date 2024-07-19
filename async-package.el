@@ -103,7 +103,8 @@ Argument ERROR-FILE is the file where errors are logged, if some."
                 (customize-save-variable
                  'package-selected-packages
                  (delete-dups (append pkgs package-selected-packages))))
-              (mapc #'package-activate pkgs)    ; load packages.
+              (package-load-all-descriptors) ; refresh package-alist.
+              (mapc #'package-activate pkgs) ; load packages.
               (async-package--modeline-mode -1)
               (message "%s %s packages done" action-string (length packages))
               (run-with-timer
