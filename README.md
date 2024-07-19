@@ -12,6 +12,7 @@ Some async applications are provided as well with this package:
 * Dired-async
 * smtp-mail-async
 * async-bytecomp
+* async-package
 
 # Install
 
@@ -96,6 +97,12 @@ to do this, add to your init file:
 
 You can control which packages will compile async with `async-bytecomp-allowed-packages`.
 Set it to `'(all)` to be sure you will compile all packages asynchronously.
+
+## Install/upgrade packages asynchronously
+
+When using `async-bytecomp-package-mode` only compilation is done
+async.  To do all async (download and (re)install) the function
+`async-package-do-action` is provided, it is used by Helm packages UI.
 
 ## Send mails asynchronously with smtp mail async
 
