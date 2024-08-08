@@ -43,6 +43,10 @@
   (unless async-package--modeline-mode
     (let ((visible-bell t)) (ding))))
 
+(defvar async-pkg-install-after-hook nil
+  "Hook that run after package installation.
+The hook runs in the call-back once installation is done in child emacs.")
+
 (defface async-package-message
     '((t (:foreground "yellow")))
   "Face used for mode-line message.")
@@ -123,7 +127,8 @@ Argument ERROR-FILE is the file where errors are logged, if some."
                       (insert-file-contents async-byte-compile-log-file)
                       (compilation-mode))
                     (display-buffer buf)
-                    (delete-file async-byte-compile-log-file)))))))))
+                    (delete-file async-byte-compile-log-file)))))))
+        (run-hooks 'async-pkg-install-after-hook)))
      'async-pkg-install t)
     (async-package--modeline-mode 1)))
 
