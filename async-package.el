@@ -73,6 +73,7 @@ Argument ERROR-FILE is the file where errors are logged, if some."
          (setq package-archives ',package-archives
                package-pinned-packages ',package-pinned-packages
                package-archive-contents ',package-archive-contents
+               package-user-dir ,package-user-dir
                package-alist ',package-alist
                load-path ',load-path)
          (prog1
