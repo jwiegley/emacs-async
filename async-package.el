@@ -48,8 +48,9 @@
 The hook runs in the call-back once installation is done in child emacs.")
 
 (defface async-package-message
-    '((t (:foreground "yellow")))
-  "Face used for mode-line message.")
+  '((t (:foreground "yellow")))
+  "Face used for mode-line message."
+  :group 'async)
 
 (defun async-package-do-action (action packages error-file)
   "Execute ACTION asynchronously on PACKAGES.
