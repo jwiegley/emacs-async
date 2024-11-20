@@ -466,11 +466,20 @@ Can be one of \"-Q\" or \"-q\".
 Default is \"-Q\" but it is sometimes useful to use \"-q\" to have a
 enhanced config or some more variables loaded.")
 
+(defvar async-library nil
+  "Cache async library path.
+It is useful only when you run multiple async processes in a loop, to
+avoid calling many times `locate-library' which is costly.
+This variable should be let bound around an `async-start' call and not
+used globally.  Should be found with `locate-library'.")
+
 (defun async--emacs-program-args (&optional sexp)
   "Return a list of arguments for invoking the child Emacs."
   ;; Using `locate-library' ensure we use the right file
-  ;; when the .elc have been deleted.
-  (let ((args (list async-quiet-switch "-l" (locate-library "async"))))
+  ;; when the .elc have been deleted, its result can be cached in
+  ;; `async-library' see Issue#193.
+  (let ((args (list async-quiet-switch "-l" (or async-library
+                                                (locate-library "async")))))
     (when async-child-init
       (setq args (append args (list "-l" async-child-init))))
     (append args (list "-batch" "-f" "async-batch-invoke"
