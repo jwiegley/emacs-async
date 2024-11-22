@@ -54,27 +54,32 @@ all packages are always compiled asynchronously."
           (const :tag "All packages" all)
           (repeat symbol)))
 
-(defvar async-byte-compile-log-file
-  (concat user-emacs-directory "async-bytecomp.log"))
+(defvar async-byte-compile-log-file "async-bytecomp.log"
+  "Prefix for a file used to pass errors from async process to the caller.
+The `file-name-nondirectory' part of the value is passed to
+`make-temp-file' as a prefix.  When the value is an absolute
+path, then the `file-name-directory' part of it is expanded in
+the calling process (with `expand-file-name') and used as a value
+of variable `temporary-file-directory' in async processes.")
 
 (defvar async-bytecomp-load-variable-regexp "\\`load-path\\'"
   "The variable used by `async-inject-variables' when (re)compiling async.")
 
-(defun async-bytecomp--file-to-comp-buffer (file-or-dir &optional quiet type)
+(defun async-bytecomp--file-to-comp-buffer (file-or-dir &optional quiet type log-file)
   (let ((bn (file-name-nondirectory file-or-dir))
         (action-name (pcase type
                        ('file "File")
                        ('directory "Directory"))))
-    (if (file-exists-p async-byte-compile-log-file)
+    (if (and log-file (file-exists-p log-file))
         (let ((buf (get-buffer-create byte-compile-log-buffer))
               (n 0))
           (with-current-buffer buf
             (goto-char (point-max))
             (let ((inhibit-read-only t))
-              (insert-file-contents async-byte-compile-log-file)
+              (insert-file-contents log-file)
               (compilation-mode))
             (display-buffer buf)
-            (delete-file async-byte-compile-log-file)
+            (delete-file log-file)
             (unless quiet
               (save-excursion
                 (goto-char (point-min))
@@ -86,6 +91,40 @@ all packages are always compiled asynchronously."
                          action-name bn)))))
       (unless quiet
         (message "%s `%s' compiled asynchronously with success" action-name bn)))))
+
+(defmacro async-bytecomp--comp-buffer-to-file ()
+  "Write contents of `byte-compile-log-buffer' to a log file.
+The log file is a temporary file that name is determined by
+`async-byte-compile-log-file', which see.  Return the actual log
+file name, or nil if no log file has been created."
+  `(when (get-buffer byte-compile-log-buffer)
+    (let ((error-data (with-current-buffer byte-compile-log-buffer
+                       (buffer-substring-no-properties (point-min) (point-max)))))
+    (unless (string= error-data "")
+      ;; The `async-byte-compile-log-file' used to be an absolute file name
+      ;; shared amongst all compilation async processes.  For backward
+      ;; compatibility the directory part of it is used to create logs the same
+      ;; directory while the nondirectory part denotes the PREFIX for
+      ;; `make-temp-file' call.  The `temporary-file-directory' is bound, such
+      ;; that the async process uses one set by the caller.
+      (let ((temporary-file-directory
+             ,(or (when (and async-byte-compile-log-file
+                             (file-name-absolute-p
+                              async-byte-compile-log-file))
+                    (expand-file-name (file-name-directory
+                                       async-byte-compile-log-file)))
+                  temporary-file-directory))
+            (log-file (make-temp-file ,(let ((log-file
+                                              (file-name-nondirectory
+                                               async-byte-compile-log-file)))
+                                         (format "%s%s"
+                                                 log-file
+                                                 (if (string-suffix-p "." log-file)
+                                                     "" "."))))))
+        (with-temp-file log-file
+          (erase-buffer)
+          (insert error-data))
+        log-file)))))
 
 ;;;###autoload
 (defun async-byte-recompile-directory (directory &optional quiet)
@@ -99,23 +138,16 @@ All *.elc files are systematically deleted before proceeding."
   ;; This happen when recompiling its own directory.
   (load "async")
   (let ((call-back
-         (lambda (&optional _ignore)
-           (async-bytecomp--file-to-comp-buffer directory quiet 'directory))))
+         (lambda (&optional log-file)
+           (async-bytecomp--file-to-comp-buffer directory quiet 'directory log-file))))
     (async-start
      `(lambda ()
         (require 'bytecomp)
         ,(async-inject-variables async-bytecomp-load-variable-regexp)
-        (let ((default-directory (file-name-as-directory ,directory))
-              error-data)
+        (let ((default-directory (file-name-as-directory ,directory)))
           (add-to-list 'load-path default-directory)
           (byte-recompile-directory ,directory 0 t)
-          (when (get-buffer byte-compile-log-buffer)
-            (setq error-data (with-current-buffer byte-compile-log-buffer
-                               (buffer-substring-no-properties (point-min) (point-max))))
-            (unless (string= error-data "")
-              (with-temp-file ,async-byte-compile-log-file
-                (erase-buffer)
-                (insert error-data))))))
+          ,(macroexpand '(async-bytecomp--comp-buffer-to-file))))
      call-back)
     (unless quiet (message "Started compiling asynchronously directory %s" directory))))
 
@@ -177,23 +209,16 @@ Async compilation of packages can be controlled by
 Same as `byte-compile-file' but asynchronous."
   (interactive "fFile: ")
   (let ((call-back
-         (lambda (&optional _ignore)
-           (async-bytecomp--file-to-comp-buffer file nil 'file))))
+         (lambda (&optional log-file)
+           (async-bytecomp--file-to-comp-buffer file nil 'file log-file))))
     (async-start
      `(lambda ()
         (require 'bytecomp)
         ,(async-inject-variables async-bytecomp-load-variable-regexp)
-        (let ((default-directory ,(file-name-directory file))
-              error-data)
+        (let ((default-directory ,(file-name-directory file)))
           (add-to-list 'load-path default-directory)
           (byte-compile-file ,file)
-          (when (get-buffer byte-compile-log-buffer)
-            (setq error-data (with-current-buffer byte-compile-log-buffer
-                               (buffer-substring-no-properties (point-min) (point-max))))
-            (unless (string= error-data "")
-              (with-temp-file ,async-byte-compile-log-file
-                (erase-buffer)
-                (insert error-data))))))
+          ,(macroexpand '(async-bytecomp--comp-buffer-to-file))))
      call-back)))
 
 (provide 'async-bytecomp)
