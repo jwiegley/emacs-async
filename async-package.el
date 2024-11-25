@@ -77,6 +77,12 @@ Argument ERROR-FILE is the file where errors are logged, if some."
                package-user-dir ,package-user-dir
                package-alist ',package-alist
                load-path ',load-path)
+         ;; Ensure `async-bytecomp-package-mode' doesn't kick in
+         ;; (issue #194) as some packages may enable it
+         ;; inconditionally.  We don't need to compile async as we are
+         ;; already async and in a clean environment.
+         (require 'async-bytecomp)
+         (setq async-bytecomp-allowed-packages nil)
          (prog1
              (condition-case err
                  (mapc ',fn ',packages)
