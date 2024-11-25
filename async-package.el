@@ -77,7 +77,7 @@ Argument ERROR-FILE is the file where errors are logged, if some."
                package-user-dir ,package-user-dir
                package-alist ',package-alist
                load-path ',load-path)
-         (prog1
+         (cons
              (condition-case err
                  (mapc ',fn ',packages)
                (error
@@ -86,15 +86,7 @@ Argument ERROR-FILE is the file where errors are logged, if some."
                    (format
                     "%S:\n Please refresh package list before %s"
                     err ,action-string)))))
-           (let (error-data)
-             (when (get-buffer byte-compile-log-buffer)
-               (setq error-data (with-current-buffer byte-compile-log-buffer
-                                  (buffer-substring-no-properties
-                                   (point-min) (point-max))))
-               (unless (string= error-data "")
-                 (with-temp-file ,async-byte-compile-log-file
-                   (erase-buffer)
-                   (insert error-data)))))))
+           ,(macroexpand '(async-bytecomp--comp-buffer-to-file))))
       (lambda (result)
         (if (file-exists-p error-file)
             (let ((buf (find-file-noselect error-file)))
@@ -104,7 +96,9 @@ Argument ERROR-FILE is the file where errors are logged, if some."
               (delete-file error-file)
               (async-package--modeline-mode -1))
           (when result
-            (let ((pkgs (if (listp result) result (list result))))
+            (let ((pkgs (let ((pkgs (car result)))
+                          (if (listp pkgs) pkgs (list pkgs))))
+                  (log-file (cdr result)))
               (when (eq action 'install)
                 (customize-save-variable
                  'package-selected-packages
@@ -121,15 +115,7 @@ Argument ERROR-FILE is the file where errors are logged, if some."
                   'async-package-message
                   str (length lst)))
                packages action-string)
-              (when (file-exists-p async-byte-compile-log-file)
-                (let ((buf (get-buffer-create byte-compile-log-buffer)))
-                  (with-current-buffer buf
-                    (goto-char (point-max))
-                    (let ((inhibit-read-only t))
-                      (insert-file-contents async-byte-compile-log-file)
-                      (compilation-mode))
-                    (display-buffer buf)
-                    (delete-file async-byte-compile-log-file)))))))
+              (async-bytecomp--file-to-comp-buffer nil 'quiet nil log-file))))
         (run-hooks 'async-pkg-install-after-hook)))
      'async-pkg-install t)
     (async-package--modeline-mode 1)))
