@@ -22,17 +22,22 @@
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
-;;
+
 ;;  This package provide the `async-byte-recompile-directory' function
 ;;  which allows, as the name says to recompile a directory outside of
-;;  your running emacs.
-;;  The benefit is your files will be compiled in a clean environment without
-;;  the old *.el files loaded.
-;;  Among other things, this fix a bug in package.el which recompile
-;;  the new files in the current environment with the old files loaded, creating
-;;  errors in most packages after upgrades.
+;;  your running emacs.  Single files can be compiled with
+;;  `async-byte-compile-file'.  The benefit is your files will be
+;;  compiled in a clean environment without the old *.el files
+;;  loaded. A mode `async-bytecomp-package-mode' is provided to
+;;  automatically compile packages asynchronously when installing or
+;;  upgrading, among other things, this fix a bug in package.el which
+;;  recompile the new files in the current environment with the old
+;;  files loaded, creating errors in most packages after upgrades.
 ;;
-;;  NB: This package is advising the function `package--compile'.
+;;  NB: This package is advising the function `package--compile' when
+;;  `async-bytecomp-package-mode' is enabled.  This mode is useful
+;;  only when using a synchronous package manager (e.g. M-x
+;;  list-package), users of M-x helm-packages don't need this anymore.
 
 ;;; Code:
 
@@ -163,7 +168,10 @@ All *.elc files are systematically deleted before proceeding."
 (define-minor-mode async-bytecomp-package-mode
   "Byte compile asynchronously packages installed with package.el.
 Async compilation of packages can be controlled by
-`async-bytecomp-allowed-packages'."
+`async-bytecomp-allowed-packages'.
+NOTE: Use this mode only if you install/upgrade etc... your packages
+synchronously, if you use a package manager like helm-package.el which
+by default is async you don't need this."
   :group 'async
   :global t
   (if async-bytecomp-package-mode
