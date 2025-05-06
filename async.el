@@ -117,7 +117,7 @@ is returned unmodified."
                   collect elm))
         (t object)))
 
-(defvar async-inject-variables-exclude-regexps '("-syntax-table\\'")
+(defvar async-inject-variables-exclude-regexps '("-syntax-table\\'" "-abbrev-table\\'")
   "A list of regexps that `async-inject-variables' should ignore.")
 
 (defun async-inject-variables
