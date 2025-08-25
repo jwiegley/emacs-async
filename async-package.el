@@ -65,7 +65,14 @@ Argument ERROR-FILE is the file where errors are logged, if some."
         (action-string (pcase action
                          ('install "Installing")
                          ('upgrade "Upgrading")
-                         ('reinstall "Reinstalling"))))
+                         ('reinstall "Reinstalling")))
+        ;; As PACKAGES are installed and compiled in a single async
+        ;; process we don't need to compute log-file in child process
+        ;; i.e. we use the same log-file for all PACKAGES.
+        (log-file (make-temp-file
+                   (expand-file-name
+                    (file-name-nondirectory async-byte-compile-log-file)
+                    temporary-file-directory))))
     (message "%s %s package(s)..." action-string (length packages))
     (process-put
      (async-start
@@ -98,7 +105,7 @@ Argument ERROR-FILE is the file where errors are logged, if some."
                                   (buffer-substring-no-properties
                                    (point-min) (point-max))))
                (unless (string= error-data "")
-                 (with-temp-file ,async-byte-compile-log-file
+                 (with-temp-file ,log-file
                    (erase-buffer)
                    (insert error-data)))))))
       (lambda (result)
@@ -127,15 +134,15 @@ Argument ERROR-FILE is the file where errors are logged, if some."
                   'async-package-message
                   str (length lst)))
                packages action-string)
-              (when (file-exists-p async-byte-compile-log-file)
+              (when (and log-file (file-exists-p log-file))
                 (let ((buf (get-buffer-create byte-compile-log-buffer)))
                   (with-current-buffer buf
                     (goto-char (point-max))
                     (let ((inhibit-read-only t))
-                      (insert-file-contents async-byte-compile-log-file)
+                      (insert-file-contents log-file)
                       (compilation-mode))
                     (display-buffer buf)
-                    (delete-file async-byte-compile-log-file)))))))
+                    (delete-file log-file)))))))
         (run-hooks 'async-pkg-install-after-hook)))
      'async-pkg-install t)
     (async-package--modeline-mode 1)))
