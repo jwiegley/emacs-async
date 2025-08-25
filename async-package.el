@@ -99,11 +99,10 @@ Argument ERROR-FILE is the file where errors are logged, if some."
                    (format
                     "%S:\n Please refresh package list before %s"
                     err ,action-string)))))
-           (let (error-data)
-             (when (get-buffer byte-compile-log-buffer)
-               (setq error-data (with-current-buffer byte-compile-log-buffer
-                                  (buffer-substring-no-properties
-                                   (point-min) (point-max))))
+           (when (get-buffer byte-compile-log-buffer)
+             (let ((error-data (with-current-buffer byte-compile-log-buffer
+                                 (buffer-substring-no-properties
+                                  (point-min) (point-max)))))
                (unless (string= error-data "")
                  (with-temp-file ,log-file
                    (erase-buffer)
