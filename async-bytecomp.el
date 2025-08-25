@@ -70,34 +70,33 @@ of variable `temporary-file-directory' in async processes.")
 (defvar async-bytecomp-load-variable-regexp "\\`load-path\\'"
   "The variable used by `async-inject-variables' when (re)compiling async.")
 
-(defun async-bytecomp--file-to-comp-buffer-1 (log-file)
-  (let ((buf (get-buffer-create byte-compile-log-buffer)))
+(defun async-bytecomp--file-to-comp-buffer-1 (log-file &optional bname action quiet)
+  (let ((buf (get-buffer-create byte-compile-log-buffer))
+        (n 0))
     (with-current-buffer buf
       (goto-char (point-max))
       (let ((inhibit-read-only t))
         (insert-file-contents log-file)
         (compilation-mode))
       (display-buffer buf)
-      (delete-file log-file))))
+      (delete-file log-file)
+      (unless quiet
+        (save-excursion
+          (goto-char (point-min))
+          (while (re-search-forward "^.*:Error:" nil t)
+            (cl-incf n)))
+        (if (> n 0)
+            (message "Failed to compile %d files in directory `%s'" n bname)
+          (message "%s `%s' compiled asynchronously with warnings"
+                   action bname))))))
 
 (defun async-bytecomp--file-to-comp-buffer (file-or-dir &optional quiet type log-file)
   (let ((bn (file-name-nondirectory file-or-dir))
         (action-name (pcase type
                        ('file "File")
-                       ('directory "Directory")))
-        (n 0))
+                       ('directory "Directory"))))
     (if (and log-file (file-exists-p log-file))
-        (progn
-          (async-bytecomp--file-to-comp-buffer-1 log-file)
-          (unless quiet
-            (save-excursion
-              (goto-char (point-min))
-              (while (re-search-forward "^.*:Error:" nil t)
-                (cl-incf n)))
-            (if (> n 0)
-                (message "Failed to compile %d files in directory `%s'" n bn)
-              (message "%s `%s' compiled asynchronously with warnings"
-                       action-name bn))))
+        (async-bytecomp--file-to-comp-buffer-1 log-file bn action-name quiet)
       (unless quiet
         (message "%s `%s' compiled asynchronously with success" action-name bn)))))
 

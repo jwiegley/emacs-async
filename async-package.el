@@ -134,7 +134,7 @@ Argument ERROR-FILE is the file where errors are logged, if some."
                   str (length lst)))
                packages action-string)
               (when (and log-file (file-exists-p log-file))
-                (async-bytecomp--file-to-comp-buffer-1 log-file)))))
+                (async-bytecomp--file-to-comp-buffer-1 log-file nil nil 'quiet)))))
         (run-hooks 'async-pkg-install-after-hook)))
      'async-pkg-install t)
     (async-package--modeline-mode 1)))
