@@ -70,9 +70,8 @@ of variable `temporary-file-directory' in async processes.")
 (defvar async-bytecomp-load-variable-regexp "\\`load-path\\'"
   "The variable used by `async-inject-variables' when (re)compiling async.")
 
-(defun async-bytecomp--file-to-comp-buffer-1 (log-file &optional bname action quiet)
-  (let ((buf (get-buffer-create byte-compile-log-buffer))
-        (n 0))
+(defun async-bytecomp--file-to-comp-buffer-1 (log-file &optional postproc)
+  (let ((buf (get-buffer-create byte-compile-log-buffer)))
     (with-current-buffer buf
       (goto-char (point-max))
       (let ((inhibit-read-only t))
@@ -80,15 +79,7 @@ of variable `temporary-file-directory' in async processes.")
         (compilation-mode))
       (display-buffer buf)
       (delete-file log-file)
-      (unless quiet
-        (save-excursion
-          (goto-char (point-min))
-          (while (re-search-forward "^.*:Error:" nil t)
-            (cl-incf n)))
-        (if (> n 0)
-            (message "Failed to compile %d files in directory `%s'" n bname)
-          (message "%s `%s' compiled asynchronously with warnings"
-                   action bname))))))
+      (and postproc (funcall postproc)))))
 
 (defun async-bytecomp--file-to-comp-buffer (file-or-dir &optional quiet type log-file)
   (let ((bn (file-name-nondirectory file-or-dir))
@@ -96,7 +87,20 @@ of variable `temporary-file-directory' in async processes.")
                        ('file "File")
                        ('directory "Directory"))))
     (if (and log-file (file-exists-p log-file))
-        (async-bytecomp--file-to-comp-buffer-1 log-file bn action-name quiet)
+        (async-bytecomp--file-to-comp-buffer-1
+         log-file
+         (unless quiet
+           (lambda ()
+             (let ((n 0))
+               (unless quiet
+                 (save-excursion
+                   (goto-char (point-min))
+                   (while (re-search-forward "^.*:Error:" nil t)
+                     (cl-incf n)))
+                 (if (> n 0)
+                     (message "Failed to compile %d files in directory `%s'" n bn)
+                   (message "%s `%s' compiled asynchronously with warnings"
+                            action-name bn)))))))
       (unless quiet
         (message "%s `%s' compiled asynchronously with success" action-name bn)))))
 
