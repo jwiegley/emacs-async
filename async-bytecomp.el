@@ -82,7 +82,7 @@ of variable `temporary-file-directory' in async processes.")
       (and postproc (funcall postproc)))))
 
 (defun async-bytecomp--file-to-comp-buffer (file-or-dir &optional quiet type log-file)
-  (let ((bn (file-name-nondirectory file-or-dir))
+  (let ((bn (file-name-nondirectory (directory-file-name file-or-dir)))
         (action-name (pcase type
                        ('file "File")
                        ('directory "Directory"))))
