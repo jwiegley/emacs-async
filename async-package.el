@@ -69,7 +69,7 @@ Argument ERROR-FILE is the file where errors are logged, if some."
         ;; As PACKAGES are installed and compiled in a single async
         ;; process we don't need to compute log-file in child process
         ;; i.e. we use the same log-file for all PACKAGES.
-        (log-file (make-temp-file
+        (log-file (make-temp-name
                    (expand-file-name
                     (file-name-nondirectory async-byte-compile-log-file)
                     temporary-file-directory))))
