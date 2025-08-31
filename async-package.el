@@ -69,7 +69,7 @@ Argument ERROR-FILE is the file where errors are logged, if some."
         ;; As PACKAGES are installed and compiled in a single async
         ;; process we don't need to compute log-file in child process
         ;; i.e. we use the same log-file for all PACKAGES.
-        (log-file (make-temp-name
+        (log-file (make-temp-file
                    (expand-file-name
                     (file-name-nondirectory async-byte-compile-log-file)
                     temporary-file-directory))))
@@ -133,7 +133,8 @@ Argument ERROR-FILE is the file where errors are logged, if some."
                   'async-package-message
                   str (length lst)))
                packages action-string)
-              (when (and log-file (file-exists-p log-file))
+              (if (zerop (nth 7 (file-attributes log-file)))
+                  (delete-file log-file)
                 (async-bytecomp--file-to-comp-buffer-1 log-file)))))
         (run-hooks 'async-pkg-install-after-hook)))
      'async-pkg-install t)
