@@ -71,7 +71,9 @@ Should take same args as `message'."
 (defcustom dired-async-skip-fast nil
   "If non-nil, skip async for fast operations.
 Same device renames and copying and renaming files smaller than
-`dired-async-small-file-max' are considered fast."
+`dired-async-small-file-max' are considered fast.
+If the total size of all files exceed `dired-async-small-file-max'
+operation is not considered fast."
   :risky t
   :type 'boolean)
 
@@ -203,22 +205,22 @@ See `file-attributes'."
   (equal (file-attribute-device-number (file-attributes f1))
          (file-attribute-device-number (file-attributes f2))))
 
-(defun dired-async--small-file-p (file)
+(defun dired-async--small-file-p (file &optional attrs)
   "Return non-nil if FILE is considered small.
 
 File is considered small if it size is smaller than
 `dired-async-small-file-max'."
-  (let ((a (file-attributes file)))
+  (let ((a (or attrs (file-attributes file))))
     ;; Directories are always large since we can't easily figure out
     ;; their total size.
     (and (not (dired-async--directory-p a))
          (< (file-attribute-size a) dired-async-small-file-max))))
 
-(defun dired-async--skip-async-p (file-creator file name-constructor)
+(defun dired-async--skip-async-p (file-creator file name-constructor &optional attrs)
   "Return non-nil if we should skip async for FILE.
 See `dired-create-files' for FILE-CREATOR and NAME-CONSTRUCTOR."
   ;; Skip async for small files.
-  (or (dired-async--small-file-p file)
+  (or (dired-async--small-file-p file attrs)
       ;; Also skip async for same device renames.
       (and (eq file-creator 'dired-rename-file)
            (let ((new (funcall name-constructor file)))
@@ -230,14 +232,22 @@ See `dired-create-files' for FILE-CREATOR and NAME-CONSTRUCTOR."
   "Around advice for `dired-create-files'.
 Uses async like `dired-async-create-files' but skips certain fast
 cases if `dired-async-skip-fast' is non-nil."
-  (let (async-list quick-list)
+  (let ((total-size 0)
+        async-list quick-list)
     (if (or (eq file-creator 'backup-file)
             (null dired-async-skip-fast))
         (setq async-list fn-list)
       (dolist (old fn-list)
-        (if (dired-async--skip-async-p file-creator old name-constructor)
-            (push old quick-list)
-          (push old async-list))))
+        (let ((attrs (file-attributes old)))
+          (if (dired-async--skip-async-p
+               file-creator old name-constructor attrs)
+              (progn
+                (push old quick-list)
+                (setq total-size (+ total-size (nth 7 attrs))))
+            (push old async-list)))))
+    (when (> total-size dired-async-small-file-max)
+      (setq async-list (append quick-list async-list)
+            quick-list nil))
     (when async-list
       (dired-async-create-files
        file-creator operation (nreverse async-list)
