@@ -323,6 +323,7 @@ ESC or `q' to not overwrite any of the remaining files,
                           from to)))
             ;; Skip file if it is too large.
             (if (and (member operation '("Copy" "Rename"))
+                     dired-async-large-file-warning-threshold
                      (eq (dired-async--abort-if-file-too-large
                           (file-attribute-size
                            (file-attributes (file-truename from)))
