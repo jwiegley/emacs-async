@@ -1,0 +1,50 @@
+pre-commit:
+  parallel: true
+  commands:
+    format-check:
+      glob: "*.el"
+      run: |
+        command -v emacs >/dev/null 2>&1 || { echo "SKIP: emacs not on PATH (use 'nix develop')"; exit 0; }
+        for f in async.el async-bytecomp.el async-package.el dired-async.el smtpmail-async.el; do
+          emacs -Q --batch "$f" --eval '
+            (progn
+              (setq-default indent-tabs-mode nil)
+              (let ((original (buffer-string)))
+                (indent-region (point-min) (point-max))
+                (unless (string= original (buffer-string))
+                  (message "Formatting differs: %s" buffer-file-name)
+                  (kill-emacs 1))))'
+        done
+    byte-compile:
+      glob: "*.el"
+      run: |
+        command -v emacs >/dev/null 2>&1 || { echo "SKIP: emacs not on PATH (use 'nix develop')"; exit 0; }
+        emacs -Q --batch -L . \
+          --eval '(setq byte-compile-error-on-warn t)' \
+          -f batch-byte-compile \
+          async.el async-bytecomp.el async-package.el dired-async.el smtpmail-async.el
+    lint:
+      glob: "*.el"
+      run: |
+        command -v emacs >/dev/null 2>&1 || { echo "SKIP: emacs not on PATH (use 'nix develop')"; exit 0; }
+        emacs -Q --batch -L . \
+          -l package-lint \
+          --eval '
+          (progn
+            (require (quote cl-lib))
+            (find-file "async.el")
+            (let* ((issues (package-lint-buffer))
+                   (errors (cl-remove-if-not
+                            (lambda (i) (eq (nth 2 i) (quote error)))
+                            issues)))
+              (dolist (i issues)
+                (message "%s:%d:%d: %s: %s"
+                         (buffer-file-name) (nth 0 i) (nth 1 i)
+                         (nth 2 i) (nth 3 i)))
+              (when errors
+                (kill-emacs 1))))'
+    test:
+      glob: "*.el"
+      run: |
+        command -v emacs >/dev/null 2>&1 || { echo "SKIP: emacs not on PATH (use 'nix develop')"; exit 0; }
+        emacs -Q --batch -L . -l buttercup -f buttercup-run-discover
