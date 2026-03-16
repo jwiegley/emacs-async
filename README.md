@@ -3,268 +3,186 @@
 <a href="http://melpa.org/#/async"><img src="http://melpa.org/packages/async-badge.svg" alt="MELPA" title="" /></a>
 <a href="http://stable.melpa.org/#/async"><img src="http://stable.melpa.org/packages/async-badge.svg" alt="MELPA Stable" title="" /></a></p>
 
-
 # emacs-async
 
-`async.el` is a module for doing asynchronous processing in Emacs.
-Some async applications are provided as well with this package:
+I've been using Emacs long enough to know that its single-threaded nature is
+both a strength and a weakness. It keeps things simple -- until you need to
+copy a hundred files over TRAMP, byte-compile a stack of packages, or send an
+email through a slow SMTP server. That's when your entire editor locks up, and
+you're stuck watching the modeline blink.
 
-* Dired-async
-* smtp-mail-async
-* async-bytecomp
-* async-package
+`async.el` fixes this by letting you run Emacs Lisp code in a child Emacs
+process. The child starts with `-Q` (no init files, no fuss), executes
+whatever you give it, and passes the result back. Your main Emacs never
+blocks.
 
-# Install
+## What's in the box
 
-You can install emacs-async package from MELPA using package.el.
+The core library is `async.el`, but the package ships with several
+ready-to-use applications built on top of it:
 
-You can also install from sources, in this case you should install
-using make and make install to ensure emacs-async is installed in a
-standard load-path destination where other packages can find it
-easily when compiling.
+- **dired-async** -- Async file operations (copy, rename, symlink) in Dired
+- **async-bytecomp** -- Byte-compiles packages in a clean subprocess, avoiding
+  the stale-bytecode bugs you get when compiling in a running session
+- **async-package** -- Downloads and installs packages asynchronously
+- **smtpmail-async** -- Sends email in the background
 
-## Install dired-async
+## Installation
 
-Add to your `.emacs.el`:
-
-    (autoload 'dired-async-mode "dired-async.el" nil t)
-    (dired-async-mode 1)
-
-This will allow you to run asynchronously
-the dired commands for copying, renaming and symlinking.
-If you are a [helm](https://github.com/emacs-helm/helm) user, this will allow you
-to copy, rename etc... asynchronously from [helm](https://github.com/emacs-helm/helm).
-Note that with [helm](https://github.com/emacs-helm/helm)
-you can disable this by running the copy, rename etc... commands with a prefix argument.
-
-If you don't want to make dired/helm asynchronous disable it with `dired-async-mode`.
-
-### Debian and Ubuntu
-
-Users of Debian 9 or later or Ubuntu 16.04 or later may simply `apt-get install elpa-async`.
-
-## Authentication and user interaction
-
-Some authentications require user interaction, for example answering to a
-prompt, entering a passwords etc. Your async implementation should
-avoid any such user interaction, to avoid being stuck with a prompt you
-will not be able to answer to in the child emacs.  For all what is remote
-(mails, tramp etc...) you have to let emacs manage your identification
-with [auth-sources](https://www.gnu.org/software/emacs/manual/html_mono/auth.html), so that you do not have to enter a password.
-
-Basically all you need is something like this in your init file:
-
-    (use-package auth-source
-      :no-require t
-      :config (setq auth-sources '("~/.authinfo.gpg" "~/.netrc")))
-
-And a "~/.authinfo.gpg" file containing entries such as
-
-    default port sudo login root password xxxxxxxx
-    
-or
-
-    machine xxxxx port xxx login xxx password xxxxxxx
-
-for more specific hosts (smtp, mails etc...)
-
-See [auth-sources manual](https://www.gnu.org/software/emacs/manual/html_mono/auth.html) for more infos.
-
-However, when choosing the destination with completion (e.g. helm) and
-you have no ".authinfo" file or just no entry for this host, tramp will
-prompt for password and offer you to save it, if you answer 'yes' you
-will be able to achieve you async operation as the child Emacs will
-use this just created ".authinfo" file, if you say 'no', your dired-async
-process will hang forever because child emacs is waiting for password.
-
-NOTE: For all your async implementations in emacs-26+ versions that
-handle remote files (tramp), you will have to let-bind
-`async-quiet-switch` to `-q` to workaround a tramp bug that prevent `emacs -Q` to use [auth-sources](https://www.gnu.org/software/emacs/manual/html_mono/auth.html) mechanism.
-
-## Enable asynchronous compilation of your (M)elpa packages
-
-By default emacs package.el compile packages in its running emacs session.
-This is not a problem when installing a new package (which is not actually loaded in current emacs)
-but it may create errors and bad compilation when upgrading a package (old version of package is already loaded
-and running in current emacs).
-You can remedy to this by allowing async to compile your packages asynchronously,
-(helm and magit actually do this by default,
-so if you are using these packages they will compile asynchronously)
-to do this, add to your init file:
-    
-    (async-bytecomp-package-mode 1)
-
-
-You can control which packages will compile async with `async-bytecomp-allowed-packages`.
-Set it to `'(all)` to be sure you will compile all packages asynchronously.
-
-## Install/upgrade packages asynchronously
-
-When using `async-bytecomp-package-mode` only compilation is done
-async.  To do all async (download and (re)install) the function
-`async-package-do-action` is provided, it is used by Helm packages UI.
-
-## Send mails asynchronously with smtp mail async
-
-To enable this feature, ensure smtpmail-async.el is loaded and use
-
-`(setq message-send-mail-function 'async-smtpmail-send-it)`.
-
-WARNINGS:
-
-- When using recent emacs (25+) the network security manager maybe
-called interactively in child emacs and make `async-smtpmail-send-it`
-fail, so be sure to send email once synchronously before using
-`async-smtpmail-send-it` as your `message-send-mail-function`.
-
-- You may loose your sent mail if your network is down, so ensure to
-queue your mails if so.  you can do this automatically,
-see [issue #64](https://github.com/jwiegley/emacs-async/issues/64).
-
-# Async usage
-
-The interface is intended to be very easy to use:
-
-## async-start
-
-    async-start START-FUNC FINISH-FUNC
-
-Execute START-FUNC (often a lambda) in a subordinate Emacs process.  When
-done, the return value is passed to FINISH-FUNC.  Example:
+The package is available on [GNU ELPA](https://elpa.gnu.org/packages/async.html)
+and [MELPA](https://melpa.org/#/async):
 
 ```elisp
-(async-start
-   ;; What to do in the child process
-   (lambda ()
-     (message "This is a test")
-     (sleep-for 3)
-     222)
-
-   ;; What to do when it finishes
-   (lambda (result)
-     (message "Async process done, result should be 222: %s" result)))
+(package-install 'async)
 ```
 
-If FINISH-FUNC is `nil` or missing, a future is returned that can be inspected
-using `async-get`, blocking until the value is ready.  Example:
+Debian/Ubuntu users: `apt-get install elpa-async`
 
-```elisp
-(let ((proc (async-start
-               ;; What to do in the child process
-               (lambda ()
-                 (message "This is a test")
-                 (sleep-for 3)
-                 222))))
+From source:
 
-    (message "I'm going to do some work here") ;; ....
-
-    (message "Waiting on async process, result should be 222: %s"
-             (async-get proc)))
+```bash
+make all && make install
 ```
 
-If you don't want to use a callback, and you don't care about any return value
-from the child process, pass the `'ignore` symbol as the second argument (if
-you don't, and never call `async-get`, it will leave ``*emacs*`` process buffers
-hanging around):
+## Usage
+
+### The basics
+
+Run a function in a subprocess and get the result via callback:
 
 ```elisp
 (async-start
  (lambda ()
-   (delete-file "a remote file on a slow link" nil))
- 'ignore)
+   (sleep-for 3)
+   42)
+ (lambda (result)
+   (message "Got %s" result)))
 ```
 
-Note: Even when FINISH-FUNC is present, a future is still returned except that
-it yields no value (since the value is passed to FINISH-FUNC).  Calling
-`async-get` on such a future always returns `nil`.  It can still be useful,
-however, as an argument to `async-ready` or `async-wait`.
+If you'd rather wait for the result yourself, skip the callback and use
+`async-get`:
 
-## async-start-process
+```elisp
+(let ((future (async-start
+               (lambda ()
+                 (sleep-for 3)
+                 42))))
+  ;; do other work...
+  (message "Result: %s" (async-get future)))
+```
 
-    async-start-process NAME PROGRAM FINISH-FUNC &rest PROGRAM-ARGS
-
-Start the executable PROGRAM asynchronously.  See `async-start`.  PROGRAM is
-passed PROGRAM-ARGS, calling FINISH-FUNC with the process object when done.
-If FINISH-FUNC is `nil`, the future object will return the process object when
-the program is finished.  Set DEFAULT-DIRECTORY to change PROGRAM's current
-working directory.
-
-## async-get
-
-    async-get FUTURE
-
-Get the value from an asynchronously called function when it is ready.  FUTURE is
-returned by `async-start` or `async-start-process` when its FINISH-FUNC is
-`nil`.
-
-## async-ready
-
-    async-ready FUTURE
-
-Query a FUTURE to see if its function's value is ready -- i.e., if no blocking
-would result from a call to `async-get` on that FUTURE.
-
-## async-wait
-
-    async-wait FUTURE
-
-Wait for FUTURE to become ready.
-
-## async-inject-variables
-
-    async-inject-variables INCLUDE-REGEXP &optional PREDICATE EXCLUDE-REGEXP
-
-Return a `setq` form that replicates part of the calling environment.  It sets
-the value for every variable matching INCLUDE-REGEXP and also PREDICATE.  It
-will not perform injection for any variable matching EXCLUDE-REGEXP (if
-present).  It is intended to be used as follows:
+If you don't care about the return value, pass `'ignore` as the callback.
+Don't just leave it nil -- you'll leak process buffers:
 
 ```elisp
 (async-start
-   `(lambda ()
-      (require 'smtpmail)
-      (with-temp-buffer
-        (insert ,(buffer-substring-no-properties (point-min) (point-max)))
-        ;; Pass in the variable environment for smtpmail
-        ,(async-inject-variables "\\`\\(smtpmail\\|\\(user-\\)?mail\\)-")
-        (smtpmail-send-it)))
-   'ignore)
+ (lambda ()
+   (delete-file "/ssh:remote:big-file.tar.gz"))
+ 'ignore)
 ```
 
-## async-let
+### Passing variables to the child
 
-    async-let BINDINGS &rest FORMS
-    
-Allow to establish let bindings asynchronously.
-Each value of binding can refer to the symbols already bound in BINDINGS (like `let*`).
-FORMS are executed once BINDINGS have been evaluated, but without blocking emacs.
-
-Examples:
+The child Emacs starts fresh, so it doesn't have your variables. Use
+`async-inject-variables` to send them over:
 
 ```elisp
-(async-let ((x "hello")
-            (y "world"))
-  (message "%s %s" x y))
-  
-(async-let ((x (* 5 2))
-            (y (+ x 4))
-            (z (+ x y)))
-  (message "%d + %d = %d" x y z))
-
+(async-start
+ `(lambda ()
+    ,(async-inject-variables "\\`user-mail-address\\'")
+    (format "Mail: %s" user-mail-address))
+ (lambda (result) (message "%s" result)))
 ```
 
-Note that if you bind something to nil and set it afterward in body, the evaluation
-of this binding will NOT be asynchronous, but will happen in you current emacs, blocking it
-if the evaluation of this value is sufficiently important, e.g:
+### Bidirectional messaging
+
+The parent and child can exchange messages while the child runs:
 
 ```elisp
-(async-let ((x "hello")
-            (y "world")
-            z)
-  (setq z (+ 1 2)) ;; Huge calculation of Z will block emacs.
-  (message "%s %s %d" x y z))
-
+(let ((proc
+       (async-start
+        (lambda ()
+          (async-send :status "working")
+          (sleep-for 2)
+          (let ((msg (async-receive)))
+            (plist-get msg :data)))
+        (lambda (result)
+          (if (async-message-p result)
+              (message "Status: %s" (plist-get result :status))
+            (message "Done: %s" result))))))
+  (async-send proc :data "here you go"))
 ```
 
-IOW if the calculation of Z is huge and you want it asynchronous evaluate it in BINDINGS
-but not in FORMS.
+### Async let bindings
+
+`async-let` evaluates bindings asynchronously and runs the body when they're
+ready:
+
+```elisp
+(async-let ((x (heavy-computation-1))
+            (y (heavy-computation-2)))
+  (message "x=%s y=%s" x y))
+```
+
+## Dired async mode
+
+```elisp
+(dired-async-mode 1)
+```
+
+That's it. Copy, rename, and symlink operations in Dired now run in the
+background. If you use [Helm](https://github.com/emacs-helm/helm), this works
+there too.
+
+## Async byte compilation
+
+```elisp
+(async-bytecomp-package-mode 1)
+(setq async-bytecomp-allowed-packages '(all))
+```
+
+This compiles packages in a clean Emacs subprocess, which avoids the nasty
+bugs you get when the old version of a package is still loaded during
+compilation.
+
+## Async email
+
+```elisp
+(setq message-send-mail-function 'async-smtpmail-send-it)
+```
+
+A word of caution: send at least one email synchronously first, so any TLS
+negotiation or auth prompts happen interactively. After that, async sending
+works fine.
+
+## Authentication
+
+For anything involving remote hosts (TRAMP, SMTP), you'll want `auth-sources`
+configured so the child process can authenticate without prompting you:
+
+```elisp
+(setq auth-sources '("~/.authinfo.gpg" "~/.netrc"))
+```
+
+On Emacs 26+, set `async-quiet-switch` to `"-q"` when using TRAMP -- there's
+a bug where `-Q` prevents auth-source from working properly.
+
+## Development
+
+If you have Nix installed:
+
+```bash
+nix develop          # Enter development shell with all dependencies
+nix flake check      # Run all checks (compile, lint, format, tests)
+```
+
+Otherwise:
+
+```bash
+make all             # Clean, generate autoloads, compile
+eask install-deps --dev
+eask test buttercup  # Run tests
+make lint            # Byte-compile with warnings-as-errors + package-lint
+make format-check    # Check code formatting
+make format          # Fix code formatting
+```
