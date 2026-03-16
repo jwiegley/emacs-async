@@ -9,7 +9,7 @@
 
 (files "async.el" "async-bytecomp.el" "*-async.el")
 
-(script "test" "echo \"Error: no test specified\" && exit 1")
+(script "test" "eask test buttercup")
 
 (source "gnu")
 (source "nongnu")
