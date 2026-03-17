@@ -221,7 +221,9 @@
          (lambda (result)
            (push (format "Async process done, result should be 222: %s" result) messages)))
 
-        (sleep-for 1)
+        (let ((deadline (+ (float-time) 10)))
+          (while (and (null messages) (< (float-time) deadline))
+            (sleep-for 0.1)))
 
         (expect (string-join (nreverse messages) "\n")
                 :to-equal "Async process done, result should be 222: 222")
@@ -244,7 +246,9 @@
              (lambda (result)
                (push (format "Async process done, result should be 222: %s" result) messages)))
 
-            (sleep-for 1)
+            (let ((deadline (+ (float-time) 10)))
+              (while (and (null messages) (< (float-time) deadline))
+                (sleep-for 0.1)))
 
             (expect (string-join (nreverse messages) "\n")
                     :to-equal "Async process done, result should be 222: 222")

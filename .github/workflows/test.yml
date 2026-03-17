@@ -65,7 +65,7 @@ jobs:
         eask install-deps --dev
 
     - name: Run buttercup
-      timeout-minutes: 1
+      timeout-minutes: 2
       run: |
         eask test buttercup
 

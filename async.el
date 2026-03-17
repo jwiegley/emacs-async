@@ -487,7 +487,7 @@ used globally.  Should be found with `locate-library'.")
                            (with-temp-buffer
                              (async--insert-sexp (list 'quote sexp))
                              (buffer-string))
-                           "<none>")))))
+                         "<none>")))))
 
 ;;;###autoload
 (defun async-start (start-func &optional finish-func)
