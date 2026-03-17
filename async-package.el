@@ -33,7 +33,7 @@
 (require 'package)
 
 (define-minor-mode async-package--modeline-mode
-    "Notify mode-line that an async process run."
+  "Notify mode-line that an async process run."
   :group 'async
   :global t
   :lighter (:eval (propertize (format " [%s async job Installing package(s)]"

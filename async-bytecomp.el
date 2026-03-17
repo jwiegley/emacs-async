@@ -110,33 +110,33 @@ The log file is a temporary file that name is determined by
 `async-byte-compile-log-file', which see.  Return the actual log
 file name, or nil if no log file has been created."
   `(when (get-buffer byte-compile-log-buffer)
-    (let ((error-data (with-current-buffer byte-compile-log-buffer
-                       (buffer-substring-no-properties (point-min) (point-max)))))
-    (unless (string= error-data "")
-      ;; The `async-byte-compile-log-file' used to be an absolute file name
-      ;; shared amongst all compilation async processes.  For backward
-      ;; compatibility the directory part of it is used to create logs the same
-      ;; directory while the nondirectory part denotes the PREFIX for
-      ;; `make-temp-file' call.  The `temporary-file-directory' is bound, such
-      ;; that the async process uses one set by the caller.
-      (let ((temporary-file-directory
-             ,(or (when (and async-byte-compile-log-file
-                             (file-name-absolute-p
-                              async-byte-compile-log-file))
-                    (expand-file-name (file-name-directory
-                                       async-byte-compile-log-file)))
-                  temporary-file-directory))
-            (log-file (make-temp-file ,(let ((log-file
-                                              (file-name-nondirectory
-                                               async-byte-compile-log-file)))
-                                         (format "%s%s"
-                                                 log-file
-                                                 (if (string-suffix-p "." log-file)
-                                                     "" "."))))))
-        (with-temp-file log-file
-          (erase-buffer)
-          (insert error-data))
-        log-file)))))
+     (let ((error-data (with-current-buffer byte-compile-log-buffer
+                         (buffer-substring-no-properties (point-min) (point-max)))))
+       (unless (string= error-data "")
+         ;; The `async-byte-compile-log-file' used to be an absolute file name
+         ;; shared amongst all compilation async processes.  For backward
+         ;; compatibility the directory part of it is used to create logs the same
+         ;; directory while the nondirectory part denotes the PREFIX for
+         ;; `make-temp-file' call.  The `temporary-file-directory' is bound, such
+         ;; that the async process uses one set by the caller.
+         (let ((temporary-file-directory
+                ,(or (when (and async-byte-compile-log-file
+                                (file-name-absolute-p
+                                 async-byte-compile-log-file))
+                       (expand-file-name (file-name-directory
+                                          async-byte-compile-log-file)))
+                     temporary-file-directory))
+               (log-file (make-temp-file ,(let ((log-file
+                                                 (file-name-nondirectory
+                                                  async-byte-compile-log-file)))
+                                            (format "%s%s"
+                                                    log-file
+                                                    (if (string-suffix-p "." log-file)
+                                                        "" "."))))))
+           (with-temp-file log-file
+             (erase-buffer)
+             (insert error-data))
+           log-file)))))
 
 ;;;###autoload
 (defun async-byte-recompile-directory (directory &optional quiet)

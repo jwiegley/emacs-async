@@ -88,19 +88,19 @@ or rename for `dired-async-skip-fast'."
   :type 'integer)
 
 (defface dired-async-message
-    '((t (:foreground "yellow")))
+  '((t (:foreground "yellow")))
   "Face used for mode-line message.")
 
 (defface dired-async-failures
-    '((t (:foreground "red")))
+  '((t (:foreground "red")))
   "Face used for mode-line message.")
 
 (defface dired-async-mode-message
-    '((t (:foreground "Gold")))
+  '((t (:foreground "Gold")))
   "Face used for `dired-async--modeline-mode' lighter.")
 
 (define-minor-mode dired-async--modeline-mode
-    "Notify mode-line that an async process run."
+  "Notify mode-line that an async process run."
   :global t
   :lighter (:eval (propertize (format " [%s Async job(s) running]"
                                       (length (dired-async-processes)))
@@ -227,8 +227,8 @@ See `dired-create-files' for FILE-CREATOR and NAME-CONSTRUCTOR."
              (dired-async--same-device-p file (file-name-directory new))))))
 
 (defun dired-async--smart-create-files (old-func file-creator
-                                        operation fn-list name-constructor
-                                        &optional marker-char)
+                                                 operation fn-list name-constructor
+                                                 &optional marker-char)
   "Around advice for `dired-create-files'.
 Uses async like `dired-async-create-files' but skips certain fast
 cases if `dired-async-skip-fast' is non-nil."
