@@ -76,6 +76,7 @@
             for f in ${sourceFiles}; do
               HOME=$TMPDIR emacs -Q --batch "$f" --eval '
                 (progn
+                  (require (quote cl-lib))
                   (setq-default indent-tabs-mode nil)
                   (let ((original (buffer-string)))
                     (indent-region (point-min) (point-max))

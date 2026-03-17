@@ -83,14 +83,14 @@ uninstall:
 format:
 	@for f in $(SRC_EL); do \
 		$(EMACS) $(LOADPATH) $$f --eval \
-		'(progn (setq-default indent-tabs-mode nil) (indent-region (point-min) (point-max)) (save-buffer))'; \
+		'(progn (require (quote cl-lib)) (setq-default indent-tabs-mode nil) (indent-region (point-min) (point-max)) (save-buffer))'; \
 	done
 
 # Check formatting without modifying files
 format-check:
 	@for f in $(SRC_EL); do \
 		$(EMACS) $(LOADPATH) $$f --eval \
-		'(progn (setq-default indent-tabs-mode nil) (let ((original (buffer-string))) (indent-region (point-min) (point-max)) (unless (string= original (buffer-string)) (message "Formatting differs: %s" buffer-file-name) (kill-emacs 1))))'; \
+		'(progn (require (quote cl-lib)) (setq-default indent-tabs-mode nil) (let ((original (buffer-string))) (indent-region (point-min) (point-max)) (unless (string= original (buffer-string)) (message "Formatting differs: %s" buffer-file-name) (kill-emacs 1))))'; \
 	done
 
 # Byte-compile with warnings as errors
