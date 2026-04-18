@@ -145,9 +145,9 @@ or rename for `dired-async-skip-fast'."
         (progn
           (pop-to-buffer (get-buffer-create dired-log-buffer))
           (goto-char (point-max))
-          (setq inhibit-read-only t)
-          (insert "Error: ")
-          (insert-file-contents dired-async-log-file)
+          (let ((inhibit-read-only t))
+            (insert "Error: ")
+            (insert-file-contents dired-async-log-file))
           (special-mode)
           (shrink-window-if-larger-than-buffer)
           (delete-file dired-async-log-file))
