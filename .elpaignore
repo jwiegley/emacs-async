@@ -4,3 +4,5 @@ flake.lock
 lefthook.yml
 .github
 CLAUDE.md
+tests
+async-test.el
