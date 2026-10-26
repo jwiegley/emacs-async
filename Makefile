@@ -65,7 +65,7 @@ clean:
 # Make autoloads file
 autoloads:
 	$(EVAL) "(progn (setq generated-autoload-file (expand-file-name \"async-autoloads.el\" \"$(PKGDIR)\")) \
-(setq backup-inhibited t) (update-directory-autoloads \"$(PKGDIR)\"))"
+(setq backup-inhibited t) (if (< emacs-major-version 29) (update-directory-autoloads \"$(PKGDIR)\") (loaddefs-generate \"$(PKGDIR)\" generated-autoload-filee nil nil nil t)))"
 
 PREFIX=/usr/local/share/
 DESTDIR=${PREFIX}emacs/site-lisp/emacs-async/
